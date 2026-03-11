@@ -1,24 +1,32 @@
+
 "use client";
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, increment } from "firebase/firestore";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [text, setText] = React.useState('');
+  const [isRatingOpen, setIsRatingOpen] = React.useState(false);
+  const [rating, setRating] = React.useState(5);
+  const [ratingComment, setRatingComment] = React.useState('');
+  const [isResolving, setIsResolving] = React.useState(false);
+  
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const chatId = post.id;
   
-  // Queries
   const messagesQuery = useMemoFirebase(() => {
     return query(
       collection(db, 'chats', chatId, 'messages'),
@@ -42,14 +50,12 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     return typingUsers.filter(u => u.id !== user.uid);
   }, [typingUsers, user]);
 
-  // Scroll to bottom
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, othersTyping]);
 
-  // Typing status management
   const updateTypingStatus = async (isTyping: boolean) => {
     if (!user || !chatId) return;
     const typingDocRef = doc(db, 'chats', chatId, 'typing', user.uid);
@@ -66,8 +72,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
   const handleInputChange = (val: string) => {
     setText(val);
-    
-    // Manage typing indicator
     if (val.length > 0) {
       updateTypingStatus(true);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -85,7 +89,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     setText('');
     updateTypingStatus(false);
     
-    // 1. Enviar mensagem
     await addDoc(collection(db, 'chats', chatId, 'messages'), {
       text: msg,
       authorId: user.uid,
@@ -93,7 +96,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       timestamp: new Date().toISOString()
     });
 
-    // 2. Notificar o destinatário
     const isAuthor = post.authorId === user.uid;
     const recipientId = isAuthor ? post.helperId : post.authorId;
 
@@ -110,16 +112,70 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     }
   };
 
-  const markResolved = async () => {
-    if (confirm("Marcar este problema como resolvido?")) {
-      await updateDoc(doc(db, 'posts', post.id), {
-        status: 'resolvido'
+  const finalizeResolution = async () => {
+    if (!user || !post.helperId) return;
+    setIsResolving(true);
+    
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Marcar post como resolvido
+      const postRef = doc(db, 'posts', post.id);
+      batch.update(postRef, { status: 'resolvido' });
+
+      // 2. Criar a avaliação
+      const ratingRef = doc(collection(db, 'ratings'));
+      batch.set(ratingRef, {
+        id: ratingRef.id,
+        stars: rating,
+        comment: ratingComment,
+        raterId: user.uid,
+        raterUsername: post.authorUsername,
+        ratedUserId: post.helperId,
+        postId: post.id,
+        timestamp: new Date().toISOString()
+      });
+
+      // 3. Atualizar perfil do ajudante (pontos, ajudas, rating)
+      const helperRef = doc(db, 'users', post.helperId);
+      const helperSnap = await getDocs(query(collection(db, 'users'), where('id', '==', post.helperId)));
+      const helperData = helperSnap.docs[0]?.data();
+      
+      if (helperData) {
+        const totalRatings = (helperData.totalRatings || 0) + 1;
+        const oldAverage = helperData.averageRating || 0;
+        const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
+        
+        batch.update(helperRef, {
+          points: increment(50), // Ganha 50 pontos por ajudar
+          helpsGiven: increment(1),
+          totalRatings: totalRatings,
+          averageRating: newAverage
+        });
+      }
+
+      // 4. Limpar o chat (mensagens e typing)
+      const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
+      messagesSnap.forEach(d => batch.delete(d.ref));
+      
+      const typingSnap = await getDocs(collection(db, 'chats', chatId, 'typing'));
+      typingSnap.forEach(d => batch.delete(d.ref));
+
+      await batch.commit();
+
+      toast({
+        title: "Problema Resolvido!",
+        description: "Obrigado por ajudar a manter a comunidade unida.",
       });
       onBack();
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Erro ao resolver" });
+    } finally {
+      setIsResolving(false);
     }
   };
 
-  // Limpar notificações ao entrar
   React.useEffect(() => {
     if (!user || !chatId) return;
     const clearNotifs = async () => {
@@ -136,7 +192,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     };
     clearNotifs();
 
-    // Cleanup typing status on unmount
     return () => {
       if (user && chatId) {
         updateTypingStatus(false);
@@ -169,7 +224,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           </div>
         </div>
         {isAuthor && post.status !== 'resolvido' && (
-          <Button size="sm" variant="outline" className="h-8 text-[10px] border-primary text-primary" onClick={markResolved}>
+          <Button size="sm" variant="outline" className="h-8 text-[10px] border-primary text-primary" onClick={() => setIsRatingOpen(true)}>
             <CheckCircle2 className="w-3 h-3 mr-1" /> Resolvido
           </Button>
         )}
@@ -224,6 +279,47 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           </Button>
         </div>
       </div>
+
+      <Dialog open={isRatingOpen} onOpenChange={setIsRatingOpen}>
+        <DialogContent className="max-w-[400px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
+            <DialogDescription>
+              A tua avaliação ajuda a manter a qualidade e confiança na comunidade.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center py-6 gap-6">
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button 
+                  key={star} 
+                  onClick={() => setRating(star)}
+                  className="transition-transform active:scale-90"
+                >
+                  <Star 
+                    className={`w-10 h-10 ${star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} 
+                  />
+                </button>
+              ))}
+            </div>
+            
+            <Input 
+              placeholder="Escreve um pequeno comentário (opcional)" 
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              className="text-center rounded-xl"
+            />
+          </div>
+
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="ghost" className="flex-1" onClick={() => setIsRatingOpen(false)}>Ainda não</Button>
+            <Button className="flex-1 bg-accent hover:bg-accent/90" onClick={finalizeResolution} disabled={isResolving}>
+              {isResolving ? "A guardar..." : "Confirmar e Resolver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
