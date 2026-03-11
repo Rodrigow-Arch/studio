@@ -21,13 +21,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.points == 0 && request.resource.data.helpsGiven == 0;
+      allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
 
       match /notifications/{notificationId} {
         allow get, list: if isOwner(userId);
-        allow create: if isSignedIn(); // Permitir que outros enviem notificações de candidatura
+        allow create: if isSignedIn(); 
         allow update, delete: if isOwner(userId);
       }
 
@@ -41,7 +41,7 @@ service cloud.firestore {
     match /posts/{postId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn(); // Permitir atualizar contador de candidatos e status
+      allow update: if isSignedIn(); 
       allow delete: if isExistingOwner('authorId');
 
       match /comments/{commentId} {
@@ -59,7 +59,15 @@ service cloud.firestore {
     }
 
     match /chats/{chatId}/messages/{messageId} {
-      allow get, list: if isSignedIn() && (request.auth.uid in chatId.split('_'));
+      // Permitir se for chat privado (uid_uid) ou se for chat de uma publicação (chatId == postId)
+      // onde o utilizador é autor ou ajudante.
+      allow get, list: if isSignedIn() && (
+        (request.auth.uid in chatId.split('_')) ||
+        (exists(/databases/$(database)/documents/posts/$(chatId)) && (
+          get(/databases/$(database)/documents/posts/$(chatId)).data.authorId == request.auth.uid ||
+          get(/databases/$(database)/documents/posts/$(chatId)).data.helperId == request.auth.uid
+        ))
+      );
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update, delete: if isExistingOwner('authorId');
     }
