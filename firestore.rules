@@ -58,18 +58,29 @@ service cloud.firestore {
       }
     }
 
-    match /chats/{chatId}/messages/{messageId} {
-      // Permitir se for chat privado (uid_uid) ou se for chat de uma publicação (chatId == postId)
-      // onde o utilizador é autor ou ajudante.
-      allow get, list: if isSignedIn() && (
-        (request.auth.uid in chatId.split('_')) ||
-        (exists(/databases/$(database)/documents/posts/$(chatId)) && (
-          get(/databases/$(database)/documents/posts/$(chatId)).data.authorId == request.auth.uid ||
-          get(/databases/$(database)/documents/posts/$(chatId)).data.helperId == request.auth.uid
-        ))
-      );
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if isExistingOwner('authorId');
+    match /chats/{chatId} {
+      // Regra comum para mensagens e estado de escrita
+      function canAccessChat() {
+        return isSignedIn() && (
+          (request.auth.uid in chatId.split('_')) ||
+          (exists(/databases/$(database)/documents/posts/$(chatId)) && (
+            get(/databases/$(database)/documents/posts/$(chatId)).data.authorId == request.auth.uid ||
+            get(/databases/$(database)/documents/posts/$(chatId)).data.helperId == request.auth.uid
+          ))
+        );
+      }
+
+      match /messages/{messageId} {
+        allow get, list: if canAccessChat();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isExistingOwner('authorId');
+      }
+
+      match /typing/{userId} {
+        allow get, list: if canAccessChat();
+        allow create, update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
     }
     
     match /ratings/{ratingId} {
