@@ -77,9 +77,10 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     setIsApplying(true);
 
     try {
+      // 1. Criar a candidatura
       const applicationData = {
         postId: post.id,
-        postAuthorId: post.authorId, // Adicionado para regras de segurança
+        postAuthorId: post.authorId,
         applicantId: user.uid,
         applicantUsername: currentUserProfile.username,
         applicantZone: currentUserProfile.zone,
@@ -90,13 +91,27 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
       await addDoc(collection(db, 'posts', post.id, 'applications'), applicationData);
       
+      // 2. Incrementar contador no post
       await updateDoc(doc(db, 'posts', post.id), {
         candidateCount: increment(1)
       });
 
+      // 3. Enviar notificação para o autor do post
+      const notificationData = {
+        userId: post.authorId,
+        type: 'application',
+        message: `${currentUserProfile.username} quer ajudar-te no post: "${post.text.substring(0, 30)}..."`,
+        postId: post.id,
+        applicantId: user.uid,
+        isRead: false,
+        timestamp: new Date().toISOString()
+      };
+
+      await addDoc(collection(db, 'users', post.authorId, 'notifications'), notificationData);
+
       toast({
         title: "Candidatura enviada!",
-        description: "O autor do post será notificado da tua vontade de ajudar.",
+        description: "O autor do post foi notificado.",
       });
     } catch (e) {
       toast({
