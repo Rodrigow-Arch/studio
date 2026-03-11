@@ -11,13 +11,16 @@ import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
-import { doc, collection, addDoc, query, orderBy, limit } from "firebase/firestore";
+import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [showComments, setShowComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
+  const [isApplying, setIsApplying] = React.useState(false);
 
   const currentUserDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -58,8 +61,52 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       timestamp: new Date().toISOString()
     };
 
-    await addDoc(collection(db, 'posts', post.id, 'comments'), newComment);
-    setCommentText('');
+    try {
+      await addDoc(collection(db, 'posts', post.id, 'comments'), newComment);
+      await updateDoc(doc(db, 'posts', post.id), {
+        commentCount: increment(1)
+      });
+      setCommentText('');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleApplyToHelp = async () => {
+    if (!user || !currentUserProfile || isApplying) return;
+    setIsApplying(true);
+
+    try {
+      const applicationData = {
+        postId: post.id,
+        postAuthorId: post.authorId, // Adicionado para regras de segurança
+        applicantId: user.uid,
+        applicantUsername: currentUserProfile.username,
+        applicantZone: currentUserProfile.zone,
+        applicantAverageRating: currentUserProfile.averageRating,
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      await addDoc(collection(db, 'posts', post.id, 'applications'), applicationData);
+      
+      await updateDoc(doc(db, 'posts', post.id), {
+        candidateCount: increment(1)
+      });
+
+      toast({
+        title: "Candidatura enviada!",
+        description: "O autor do post será notificado da tua vontade de ajudar.",
+      });
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao candidatar",
+        description: "Não foi possível enviar a tua candidatura."
+      });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -106,16 +153,22 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               className="h-8 text-[11px] gap-1.5 px-2"
               onClick={() => setShowComments(!showComments)}
             >
-              <MessageSquare className="w-4 h-4" /> {post.commentCount || comments?.length || 0}
+              <MessageSquare className="w-4 h-4" /> {post.commentCount || 0}
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 text-[11px] gap-1.5 px-2">
+            <div className="flex items-center gap-1.5 px-2 text-[11px] text-muted-foreground">
               <CheckCircle2 className="w-4 h-4" /> {post.candidateCount || 0} candidatos
-            </Button>
+            </div>
           </div>
 
           {post.authorId !== user?.uid && post.status === 'aberto' && (
-            <Button size="sm" variant="default" className="h-8 px-3 text-[11px] font-bold rounded-full bg-accent hover:bg-accent/90">
-              <HandHeart className="w-4 h-4 mr-1.5" /> Quero Ajudar
+            <Button 
+              size="sm" 
+              variant="default" 
+              className="h-8 px-3 text-[11px] font-bold rounded-full bg-accent hover:bg-accent/90"
+              onClick={handleApplyToHelp}
+              disabled={isApplying}
+            >
+              <HandHeart className="w-4 h-4 mr-1.5" /> {isApplying ? "A enviar..." : "Quero Ajudar"}
             </Button>
           )}
         </div>
