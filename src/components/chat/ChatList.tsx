@@ -3,17 +3,20 @@
 import * as React from 'react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Clock } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import ChatRoom from './ChatRoom';
 
-export default function ChatList() {
+interface ChatListProps {
+  onProfileClick: (uid: string) => void;
+}
+
+export default function ChatList({ onProfileClick }: ChatListProps) {
   const { user } = useUser();
   const db = useFirestore();
   const [activeChat, setActiveChat] = React.useState<any | null>(null);
 
-  // Procurar posts onde o user é autor OU ajudante e o status é "em curso" ou "resolvido"
   const chatsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -30,7 +33,13 @@ export default function ChatList() {
   }, [allActivePosts, user]);
 
   if (activeChat) {
-    return <ChatRoom post={activeChat} onBack={() => setActiveChat(null)} />;
+    return (
+      <ChatRoom 
+        post={activeChat} 
+        onBack={() => setActiveChat(null)} 
+        onProfileClick={onProfileClick}
+      />
+    );
   }
 
   return (
@@ -55,7 +64,6 @@ export default function ChatList() {
         <div className="space-y-2">
           {filteredChats.map(post => {
             const isAuthor = post.authorId === user?.uid;
-            // Tenta obter o nome do outro participante
             const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
             
             return (

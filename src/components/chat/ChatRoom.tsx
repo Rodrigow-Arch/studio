@@ -4,18 +4,18 @@ import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, ExternalLink } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, limit, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs } from "firebase/firestore";
 import { format } from "date-fns";
 
-export default function ChatRoom({ post, onBack }: { post: any, onBack: () => void }) {
+export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
   const db = useFirestore();
   const [text, setText] = React.useState('');
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
-  const chatId = post.id; // Usamos o ID do post como identificador único da conversa
+  const chatId = post.id;
   
   const messagesQuery = useMemoFirebase(() => {
     return query(
@@ -38,12 +38,29 @@ export default function ChatRoom({ post, onBack }: { post: any, onBack: () => vo
     const msg = text;
     setText('');
     
+    // 1. Enviar mensagem
     await addDoc(collection(db, 'chats', chatId, 'messages'), {
       text: msg,
       authorId: user.uid,
       authorName: user.displayName || user.email?.split('@')[0],
       timestamp: new Date().toISOString()
     });
+
+    // 2. Notificar o destinatário
+    const isAuthor = post.authorId === user.uid;
+    const recipientId = isAuthor ? post.helperId : post.authorId;
+
+    if (recipientId) {
+      await addDoc(collection(db, 'users', recipientId, 'notifications'), {
+        userId: recipientId,
+        type: 'chat_message',
+        message: `Nova mensagem de ${isAuthor ? post.authorUsername : (post.helperUsername || 'Ajudante')}`,
+        postId: post.id,
+        chatId: chatId,
+        isRead: false,
+        timestamp: new Date().toISOString()
+      });
+    }
   };
 
   const markResolved = async () => {
@@ -55,8 +72,27 @@ export default function ChatRoom({ post, onBack }: { post: any, onBack: () => vo
     }
   };
 
+  // Limpar notificações de mensagem ao entrar no chat
+  React.useEffect(() => {
+    if (!user || !chatId) return;
+    const clearNotifs = async () => {
+      const q = query(
+        collection(db, 'users', user.uid, 'notifications'),
+        where('postId', '==', post.id),
+        where('type', '==', 'chat_message'),
+        where('isRead', '==', false)
+      );
+      const snap = await getDocs(q);
+      snap.forEach(d => {
+        updateDoc(d.ref, { isRead: true });
+      });
+    };
+    clearNotifs();
+  }, [user, chatId, db, post.id]);
+
   const isAuthor = post.authorId === user?.uid;
-  const otherName = isAuthor ? 'Ajudante' : post.authorUsername;
+  const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
+  const otherId = isAuthor ? post.helperId : post.authorId;
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
@@ -64,12 +100,17 @@ export default function ChatRoom({ post, onBack }: { post: any, onBack: () => vo
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8 bg-primary">
+            <Avatar 
+              className="w-8 h-8 bg-primary cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => otherId && onProfileClick?.(otherId)}
+            >
               <AvatarFallback className="text-white text-xs">{otherName.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div>
-              <p className="text-sm font-bold leading-none">{otherName}</p>
-              <p className="text-[10px] text-muted-foreground">Post: {post.type}</p>
+            <div className="cursor-pointer" onClick={() => otherId && onProfileClick?.(otherId)}>
+              <p className="text-sm font-bold leading-none hover:text-primary transition-colors">{otherName}</p>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                Post: {post.type} <ExternalLink className="w-2 h-2" />
+              </p>
             </div>
           </div>
         </div>
@@ -80,13 +121,17 @@ export default function ChatRoom({ post, onBack }: { post: any, onBack: () => vo
         )}
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/10">
+      <div className="px-4 py-2 bg-secondary/20 border-b flex justify-between items-center">
+        <p className="text-[10px] text-muted-foreground line-clamp-1 italic">"{post.text}"</p>
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/5">
         {messages?.map((msg) => {
           const isMe = msg.authorId === user?.uid;
           return (
             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
-                isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none'
+                isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
               }`}>
                 <p>{msg.text}</p>
                 <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>

@@ -45,6 +45,17 @@ export default function Home() {
 
   const handleProfileClick = (uid: string) => {
     setViewingUserId(uid);
+    setShowNotifications(false);
+  };
+
+  const handleNotificationAction = (type: string, data?: any) => {
+    if (type === 'chat') {
+      setActiveTab('messages');
+      setShowNotifications(false);
+    } else if (type === 'feed') {
+      setActiveTab('feed');
+      setShowNotifications(false);
+    }
   };
 
   const renderContent = () => {
@@ -57,7 +68,15 @@ export default function Home() {
       );
     }
 
-    if (showNotifications) return <NotificationsPage onClose={() => setShowNotifications(false)} />;
+    if (showNotifications) {
+      return (
+        <NotificationsPage 
+          onClose={() => setShowNotifications(false)} 
+          onProfileClick={handleProfileClick}
+          onAction={handleNotificationAction}
+        />
+      );
+    }
 
     switch (activeTab) {
       case 'groups':
@@ -65,7 +84,7 @@ export default function Home() {
       case 'add':
         return <Feed initialShowCreate={true} onCreated={() => setActiveTab('feed')} onProfileClick={handleProfileClick} />;
       case 'messages':
-        return <ChatList />;
+        return <ChatList onProfileClick={handleProfileClick} />;
       case 'profile':
         return <ProfilePage userId={user.uid} />;
       case 'feed':

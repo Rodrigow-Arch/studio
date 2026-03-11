@@ -2,14 +2,20 @@
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
-export default function NotificationsPage({ onClose }: { onClose: () => void }) {
+interface NotificationsPageProps {
+  onClose: () => void;
+  onProfileClick: (uid: string) => void;
+  onAction: (type: string, data?: any) => void;
+}
+
+export default function NotificationsPage({ onClose, onProfileClick, onAction }: NotificationsPageProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -27,6 +33,7 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
       case 'Ajuda': return <HandHeart className="text-blue-500" />;
       case 'Partilha': return <Share2 className="text-green-500" />;
       case 'Evento': return <Calendar className="text-purple-500" />;
+      case 'chat_message': return <MessageCircle className="text-primary" />;
       default: return <CheckCircle2 className="text-primary" />;
     }
   };
@@ -34,14 +41,12 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
   const handleAccept = async (notif: any) => {
     if (!user) return;
     try {
-      // 1. Atualizar o post para "em curso" e associar o ajudante
       await updateDoc(doc(db, 'posts', notif.postId), {
         status: 'em curso',
         helperId: notif.applicantId,
         helperUsername: notif.applicantUsername || 'Ajudante'
       });
 
-      // 2. Notificar o ajudante que foi aceite
       await addDoc(collection(db, 'users', notif.applicantId, 'notifications'), {
         userId: notif.applicantId,
         type: 'accepted',
@@ -51,7 +56,6 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
         timestamp: new Date().toISOString()
       });
 
-      // 3. Marcar notificação atual como lida e aceite
       await updateDoc(doc(db, 'users', user.uid, 'notifications', notif.id), {
         isRead: true,
         accepted: true
@@ -61,6 +65,7 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
         title: "Candidatura aceite!", 
         description: "Agora podes combinar os detalhes no Chat.",
       });
+      onAction('chat');
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao aceitar candidatura" });
     }
@@ -69,7 +74,6 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
   const handleReject = async (notif: any) => {
     if (!user) return;
     try {
-      // Apenas apagamos a notificação se o autor não quiser aquela ajuda
       await deleteDoc(doc(db, 'users', user.uid, 'notifications', notif.id));
       toast({ title: "Candidatura removida" });
     } catch (e) {
@@ -79,10 +83,21 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
 
   const markAllRead = async () => {
     if (!user || !notifications) return;
-    for (const n of notifications) {
-      if (!n.isRead) {
-        await updateDoc(doc(db, 'users', user.uid, 'notifications', n.id), { isRead: true });
-      }
+    const batchPromises = notifications.filter(n => !n.isRead).map(n => 
+      updateDoc(doc(db, 'users', user.uid, 'notifications', n.id), { isRead: true })
+    );
+    await Promise.all(batchPromises);
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.isRead && user) {
+      await updateDoc(doc(db, 'users', user.uid, 'notifications', notif.id), { isRead: true });
+    }
+    
+    if (notif.type === 'chat_message' || notif.type === 'accepted') {
+      onAction('chat');
+    } else if (notif.postId) {
+      onAction('feed', { postId: notif.postId });
     }
   };
 
@@ -93,7 +108,7 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
           <Button variant="ghost" size="icon" onClick={onClose}><ArrowLeft className="w-5 h-5" /></Button>
           <h2 className="font-headline text-xl">Notificações</h2>
         </div>
-        <Button variant="link" size="sm" onClick={markAllRead}>Limpar</Button>
+        <Button variant="link" size="sm" onClick={markAllRead}>Lidas</Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-20">
@@ -106,7 +121,8 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
           notifications.map(notif => (
             <div 
               key={notif.id} 
-              className={`p-4 rounded-2xl flex flex-col gap-3 border transition-colors ${notif.isRead ? 'bg-white opacity-60' : 'bg-white border-primary/20 shadow-sm'}`}
+              className={`p-4 rounded-2xl flex flex-col gap-3 border transition-colors cursor-pointer ${notif.isRead ? 'bg-white opacity-60' : 'bg-white border-primary/20 shadow-sm'}`}
+              onClick={() => handleNotificationClick(notif)}
             >
               <div className="flex gap-3">
                 <div className="mt-1">{getIcon(notif.type)}</div>
@@ -117,7 +133,7 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
               </div>
 
               {notif.type === 'application' && !notif.accepted && (
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2" onClick={e => e.stopPropagation()}>
                   <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90" onClick={() => handleAccept(notif)}>
                     <UserCheck className="w-3 h-3 mr-1" /> Candidatá-lo/a
                   </Button>
