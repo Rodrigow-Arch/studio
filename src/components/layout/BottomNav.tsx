@@ -55,11 +55,11 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <Icon className={cn("w-6 h-6", tab.primary && "w-7 h-7")} />
             {!tab.primary && <span className="text-[10px] font-medium">{tab.label}</span>}
             
-            {tab.badge && tab.badge > 0 && (
+            {typeof tab.badge === 'number' && tab.badge > 0 ? (
               <Badge className="absolute top-1 right-2 h-4 w-4 flex items-center justify-center p-0 bg-destructive text-white border-white text-[8px] font-bold">
                 {tab.badge}
               </Badge>
-            )}
+            ) : null}
           </button>
         );
       })}
