@@ -17,6 +17,7 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
   const db = useFirestore();
   const [activeChat, setActiveChat] = React.useState<any | null>(null);
 
+  // Busca todos os posts onde o usuário está envolvido
   const chatsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -26,6 +27,18 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
   }, [db, user]);
 
   const { data: allActivePosts, isLoading } = useCollection(chatsQuery);
+
+  // Busca notificações de mensagens não lidas para marcar na lista
+  const unreadNotifsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(db, 'users', user.uid, 'notifications'),
+      where('type', '==', 'chat_message'),
+      where('isRead', '==', false)
+    );
+  }, [db, user]);
+
+  const { data: unreadNotifs } = useCollection(unreadNotifsQuery);
 
   const filteredChats = React.useMemo(() => {
     if (!allActivePosts || !user) return [];
@@ -66,21 +79,37 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
             const isAuthor = post.authorId === user?.uid;
             const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
             
+            // Conta notificações não lidas específicas para este post
+            const unreadCount = unreadNotifs?.filter(n => n.postId === post.id).length || 0;
+            
             return (
               <div 
                 key={post.id} 
-                className="flex items-center gap-3 p-3 bg-white border rounded-2xl cursor-pointer hover:shadow-sm transition-all"
+                className={`flex items-center gap-3 p-3 border rounded-2xl cursor-pointer hover:shadow-sm transition-all ${unreadCount > 0 ? 'bg-primary/5 border-primary/20' : 'bg-white'}`}
                 onClick={() => setActiveChat(post)}
               >
-                <Avatar className="w-12 h-12 bg-primary">
-                  <AvatarFallback className="text-white font-bold">{otherName.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-12 h-12 bg-primary">
+                    <AvatarFallback className="text-white font-bold">{otherName.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white border-2 border-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{otherName}</p>
+                  <div className="flex items-center justify-between">
+                    <p className={`text-sm truncate ${unreadCount > 0 ? 'font-black text-primary' : 'font-bold'}`}>
+                      {otherName}
+                    </p>
+                  </div>
                   <p className="text-xs text-muted-foreground line-clamp-1">Post: {post.text}</p>
                 </div>
-                <div className="text-right">
-                  <Badge variant="outline" className="text-[9px] uppercase border-primary/30 text-primary">
+
+                <div className="text-right flex flex-col items-end gap-1">
+                  <Badge variant="outline" className={`text-[9px] uppercase ${post.status === 'resolvido' ? 'bg-secondary' : 'border-primary/30 text-primary'}`}>
                     {post.status}
                   </Badge>
                 </div>
