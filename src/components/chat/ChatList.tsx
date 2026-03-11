@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Clock } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, orderBy } from "firebase/firestore";
@@ -54,7 +55,8 @@ export default function ChatList() {
         <div className="space-y-2">
           {filteredChats.map(post => {
             const isAuthor = post.authorId === user?.uid;
-            const otherName = isAuthor ? post.helperName || 'Ajudante' : post.authorUsername;
+            // Tenta obter o nome do outro participante
+            const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
             
             return (
               <div 
@@ -70,7 +72,9 @@ export default function ChatList() {
                   <p className="text-xs text-muted-foreground line-clamp-1">Post: {post.text}</p>
                 </div>
                 <div className="text-right">
-                  <Badge variant="outline" className="text-[9px] uppercase">{post.status}</Badge>
+                  <Badge variant="outline" className="text-[9px] uppercase border-primary/30 text-primary">
+                    {post.status}
+                  </Badge>
                 </div>
               </div>
             );

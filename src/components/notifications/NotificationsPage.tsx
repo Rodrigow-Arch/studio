@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X,
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, where, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NotificationsPage({ onClose }: { onClose: () => void }) {
@@ -34,10 +34,11 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
   const handleAccept = async (notif: any) => {
     if (!user) return;
     try {
-      // 1. Atualizar o post para "em curso"
+      // 1. Atualizar o post para "em curso" e associar o ajudante
       await updateDoc(doc(db, 'posts', notif.postId), {
         status: 'em curso',
-        helperId: notif.applicantId
+        helperId: notif.applicantId,
+        helperUsername: notif.applicantUsername || 'Ajudante'
       });
 
       // 2. Notificar o ajudante que foi aceite
@@ -50,23 +51,27 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
         timestamp: new Date().toISOString()
       });
 
-      // 3. Marcar notificação como lida
+      // 3. Marcar notificação atual como lida e aceite
       await updateDoc(doc(db, 'users', user.uid, 'notifications', notif.id), {
         isRead: true,
         accepted: true
       });
 
-      toast({ title: "Candidatura aceite!", description: "O chat foi aberto." });
+      toast({ 
+        title: "Candidatura aceite!", 
+        description: "Agora podes combinar os detalhes no Chat.",
+      });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao aceitar" });
+      toast({ variant: "destructive", title: "Erro ao aceitar candidatura" });
     }
   };
 
   const handleReject = async (notif: any) => {
     if (!user) return;
     try {
+      // Apenas apagamos a notificação se o autor não quiser aquela ajuda
       await deleteDoc(doc(db, 'users', user.uid, 'notifications', notif.id));
-      toast({ title: "Candidatura rejeitada" });
+      toast({ title: "Candidatura removida" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao rejeitar" });
     }
@@ -113,11 +118,11 @@ export default function NotificationsPage({ onClose }: { onClose: () => void }) 
 
               {notif.type === 'application' && !notif.accepted && (
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent" onClick={() => handleAccept(notif)}>
-                    <UserCheck className="w-3 h-3 mr-1" /> Aceitar
+                  <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90" onClick={() => handleAccept(notif)}>
+                    <UserCheck className="w-3 h-3 mr-1" /> Candidatá-lo/a
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] text-destructive border-destructive/20" onClick={() => handleReject(notif)}>
-                    <X className="w-3 h-3 mr-1" /> Rejeitar
+                  <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => handleReject(notif)}>
+                    <X className="w-3 h-3 mr-1" /> Cancelar
                   </Button>
                 </div>
               )}
