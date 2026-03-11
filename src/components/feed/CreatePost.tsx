@@ -1,55 +1,86 @@
+
 "use client";
 
 import * as React from 'react';
-import { PostType, store, useStore } from "@/lib/store";
+import { PostType } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { X, Sparkles, MapPin } from "lucide-react";
 import { smartPostContentSuggestion } from "@/ai/flows/smart-post-content-suggestion-flow";
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, addDoc, doc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CreatePost({ onClose }: { onClose: () => void }) {
-  const { currentUser } = useStore();
+  const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+  
+  const userDocRef = useMemoFirebase(() => {
+    return user ? doc(db, 'users', user.uid) : null;
+  }, [db, user]);
+  
+  const { data: userProfile } = useDoc(userDocRef);
+
   const [tipo, setTipo] = React.useState<PostType>('Ajuda');
   const [texto, setTexto] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
 
-  const handleCreate = () => {
-    if (!texto || !currentUser) return;
-    
-    store.addPost({
-      id: Math.random().toString(36).substr(2, 9),
-      tipo,
-      texto,
-      autor: currentUser.name,
-      username: currentUser.username,
-      avatarLetra: currentUser.avatarLetra,
-      avatarCor: currentUser.avatarCor,
-      distrito: currentUser.distrito,
-      zona: currentUser.zona,
-      lat: currentUser.lat,
-      lng: currentUser.lng,
-      candidatosCount: 0,
-      comentariosCount: 0,
-      status: 'aberto',
-      uid: currentUser.uid,
-      ts: Date.now()
-    });
+  const handleCreate = async () => {
+    if (!texto || !user || !userProfile) return;
+    setLoading(true);
 
-    currentUser.points += 15;
-    store.save();
-    onClose();
+    try {
+      const postData = {
+        type: tipo,
+        text: texto,
+        authorId: user.uid,
+        authorUsername: userProfile.username,
+        authorAvatarLetter: userProfile.avatarLetter,
+        authorAvatarColor: userProfile.avatarColor,
+        district: userProfile.district,
+        zone: userProfile.zone,
+        latitude: userProfile.latitude,
+        longitude: userProfile.longitude,
+        candidateCount: 0,
+        commentCount: 0,
+        status: 'aberto',
+        timestamp: new Date().toISOString()
+      };
+
+      await addDoc(collection(db, "posts"), postData);
+      
+      // Update points in Firestore
+      await updateDoc(doc(db, "users", user.uid), {
+        points: increment(15)
+      });
+
+      toast({
+        title: "Publicado!",
+        description: "Ganhaste 15 pontos por participar na comunidade.",
+      });
+      onClose();
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao publicar",
+        description: "Não foi possível guardar o teu post."
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getSuggestions = async () => {
-    if (!currentUser) return;
+    if (!userProfile) return;
     setLoading(true);
     try {
       const res = await smartPostContentSuggestion({
         postType: tipo,
-        userLocation: `${currentUser.distrito}, ${currentUser.zona}`
+        userLocation: `${userProfile.district}, ${userProfile.zone}`
       });
       setSuggestions(res.suggestions);
     } catch (e) {
@@ -88,13 +119,16 @@ export default function CreatePost({ onClose }: { onClose: () => void }) {
               value={texto} 
               onChange={e => setTexto(e.target.value)}
               className="min-h-[100px] text-sm"
+              disabled={loading}
             />
           </div>
 
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {currentUser?.zona}, {currentUser?.distrito}</span>
+            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {userProfile?.zone}, {userProfile?.district}</span>
             <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" onClick={getSuggestions} disabled={loading}>
-              <Sparkles className="w-3 h-3 text-accent" /> Sugerir ideias
+              <button className="flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-accent" /> Sugerir ideias
+              </button>
             </Button>
           </div>
 
@@ -112,7 +146,9 @@ export default function CreatePost({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <Button className="w-full font-bold" disabled={!texto} onClick={handleCreate}>Publicar Post</Button>
+          <Button className="w-full font-bold" disabled={!texto || loading} onClick={handleCreate}>
+            {loading ? "A publicar..." : "Publicar Post"}
+          </Button>
         </CardContent>
       </Card>
     </div>

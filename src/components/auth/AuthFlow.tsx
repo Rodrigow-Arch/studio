@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -8,10 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
 import { MapPin, CheckCircle2, ArrowRight } from "lucide-react";
-import { generatePersonalizedUsernameSuggestion } from "@/ai/flows/personalized-username-suggestion";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AuthFlow() {
@@ -34,11 +34,10 @@ export default function AuthFlow() {
     lng: -9.1393
   });
 
-  const [usernameAlternatives, setUsernameAlternatives] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  const handleNext = async () => {
+  const handleNext = () => {
     setError('');
     if (step === 1) {
       if (!formData.email.includes('@')) return setError('Email inválido');
@@ -80,7 +79,7 @@ export default function AuthFlow() {
   };
 
   const handleCreateAccount = async () => {
-    if (!formData.telefone || formData.telefone.length < 11) {
+    if (!formData.telefone || formData.telefone.length < 9) {
       return setError('Por favor, insere um número de telefone válido.');
     }
 
@@ -104,7 +103,7 @@ export default function AuthFlow() {
         latitude: formData.lat,
         longitude: formData.lng,
         phoneNumber: formData.telefone,
-        points: 0,
+        points: 0, // Garantido: Começa com 0 pontos
         helpsGiven: 0,
         sharesMade: 0,
         averageRating: 0,
