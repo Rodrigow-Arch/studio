@@ -1,0 +1,190 @@
+/**
+ * Portugal Unido - Firestore Security Rules
+ *
+ * Core Philosophy: 
+ * This ruleset implements an Authorization Independence model, prioritizing local document state 
+ * for security decisions. It balances strict ownership for private data with open collaboration 
+ * for community-driven features like posts and groups. 
+ *
+ * Data Structure:
+ * - User-centric data (profiles, notifications) is nested under /users/{userId}.
+ * - Community content (posts, ratings) resides in top-level collections for global discoverability.
+ * - Collaborative spaces (groups, chats) use shared access patterns via member lists or maps.
+ *
+ * Key Security Decisions:
+ * - Denormalization: Authorization-critical IDs (like authorId or participantIds) are required 
+ *   on documents to allow fast, atomic security checks without cross-document lookups (get() calls).
+ * - Prototyping Flexibility: Rules strictly enforce 'who' can write, but allow flexibility 
+ *   on 'what' (the specific schema) to support rapid development iteration.
+ * - User Request: New user profiles are required to initialize with 0 points and 0 helpsGiven.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the user is authenticated with a valid UID. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the user is the owner of an existing document using a data field. */
+    function isExistingOwner(ownerIdField) {
+      return isSignedIn() && resource != null && resource.data[ownerIdField] == request.auth.uid;
+    }
+
+    /** @description Checks if the authenticated user is present in a list of IDs. */
+    function isMember(memberList) {
+      return isSignedIn() && request.auth.uid in memberList;
+    }
+
+    /** @description Checks if the authenticated user is a key in a membership map. */
+    function isMapMember(memberMap) {
+      return isSignedIn() && memberMap[request.auth.uid] != null;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for User Profiles. Enforces that users can only manage their own profile data.
+     * @path /users/{userId}
+     * @allow (create) if auth.uid == userId and points == 0.
+     * @deny (update) if user attempts to change someone else's profile.
+     * @principle Path-based ownership and relational integrity.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && request.resource.data.points == 0 && request.resource.data.helpsGiven == 0;
+      allow update: if isOwner(userId) && request.resource.data.id == userId;
+      allow delete: if isOwner(userId);
+
+      /**
+       * @description Notifications specific to a user.
+       * @path /users/{userId}/notifications/{notificationId}
+       * @allow (get) if user owns the parent path.
+       * @deny (list) if user attempts to list another's notifications.
+       * @principle Path-based ownership.
+       */
+      match /notifications/{notificationId} {
+        allow get, list: if isOwner(userId);
+        allow create: if false; // Notifications should typically be created by system logic
+        allow update: if isOwner(userId) && request.resource.data.userId == userId;
+        allow delete: if isOwner(userId);
+      }
+
+      /**
+       * @description Comments left on a user's profile.
+       * @path /users/{userId}/profileComments/{commentId}
+       * @allow (create) if authorId matches auth.uid.
+       * @deny (delete) if requester is not the original author.
+       * @principle Denormalized ownership for writes.
+       */
+      match /profileComments/{commentId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update: if isExistingOwner('authorId');
+        allow delete: if isExistingOwner('authorId');
+      }
+    }
+
+    /**
+     * @description Community posts for help, SOS, or events.
+     * @path /posts/{postId}
+     * @allow (list) for all authenticated users.
+     * @deny (create) if authorId in data doesn't match auth.uid.
+     * @principle Public read with owner-only writes.
+     */
+    match /posts/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update: if isExistingOwner('authorId') && request.resource.data.authorId == resource.data.authorId;
+      allow delete: if isExistingOwner('authorId');
+
+      /**
+       * @description Comments on a specific post.
+       * @path /posts/{postId}/comments/{commentId}
+       */
+      match /comments/{commentId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update: if isExistingOwner('authorId');
+        allow delete: if isExistingOwner('authorId');
+      }
+
+      /**
+       * @description Applications to help with a post.
+       * @path /posts/{postId}/applications/{applicationId}
+       * @allow (get) if applicant or the post author.
+       * @principle Shared access via denormalized IDs.
+       */
+      match /applications/{applicationId} {
+        allow get: if isSignedIn() && (resource.data.applicantId == request.auth.uid || resource.data.postAuthorId == request.auth.uid);
+        allow list: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.applicantId == request.auth.uid;
+        allow update: if isSignedIn() && (resource.data.applicantId == request.auth.uid || resource.data.postAuthorId == request.auth.uid);
+        allow delete: if isExistingOwner('applicantId');
+      }
+    }
+
+    /**
+     * @description Global user ratings.
+     * @path /ratings/{ratingId}
+     * @allow (create) if raterId matches auth.uid.
+     * @principle Validates that the author of the rating is the one signed in.
+     */
+    match /ratings/{ratingId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.raterId == request.auth.uid;
+      allow update: if isExistingOwner('raterId');
+      allow delete: if isExistingOwner('raterId');
+    }
+
+    /**
+     * @description Community groups and their administrative settings.
+     * @path /groups/{groupId}
+     * @allow (get) if user is a member of the group.
+     * @principle Collaborative shared access using ID arrays.
+     */
+    match /groups/{groupId} {
+      allow get: if isMember(resource.data.memberIds);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.adminId == request.auth.uid;
+      allow update: if isExistingOwner('adminId');
+      allow delete: if isExistingOwner('adminId');
+
+      /**
+       * @description Messages within a group chat.
+       * @path /groups/{groupId}/messages/{messageId}
+       * @principle Uses denormalized member map for performant access checks.
+       */
+      match /messages/{messageId} {
+        allow get, list: if isMapMember(resource.data.groupMembers) || isExistingOwner('groupAdminId');
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update: if isExistingOwner('authorId');
+        allow delete: if isExistingOwner('authorId');
+      }
+    }
+
+    /**
+     * @description Private 1:1 chat conversations.
+     * @path /chats/{chatId}/messages/{messageId}
+     * @allow (get) if auth.uid is in the participantIds array.
+     * @principle Shared access for closed collaborators.
+     */
+    match /chats/{chatId}/messages/{messageId} {
+      allow get, list: if isMember(resource.data.participantIds);
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid && isMember(request.resource.data.participantIds);
+      allow update: if isExistingOwner('authorId');
+      allow delete: if isExistingOwner('authorId');
+    }
+
+  }
+}

@@ -1,0 +1,722 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile and core information within the 'Portugal Unido' community.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "A unique username for the user, starting with '@'."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "birthDate": {
+          "type": "string",
+          "description": "The user's date of birth (DD/MM/AAAA).",
+          "format": "date"
+        },
+        "district": {
+          "type": "string",
+          "description": "The district in Portugal where the user is located."
+        },
+        "zone": {
+          "type": "string",
+          "description": "The free-text zone or neighborhood within the district, e.g., 'Bairro Alto'."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the user's location, derived from GPS. (Optional)"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the user's location, derived from GPS. (Optional)"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number with the +351 prefix. (Optional)"
+        },
+        "points": {
+          "type": "number",
+          "description": "Total points accumulated by the user for community actions."
+        },
+        "helpsGiven": {
+          "type": "number",
+          "description": "Count of times the user has successfully helped others (posts marked 'Resolvido')."
+        },
+        "sharesMade": {
+          "type": "number",
+          "description": "Count of times the user has shared resources or events."
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "The average rating received by the user, on a scale of 0.0 to 5.0."
+        },
+        "totalRatings": {
+          "type": "number",
+          "description": "The total number of ratings received by the user."
+        },
+        "description": {
+          "type": "string",
+          "description": "A short personal biography or description provided by the user (max 160 characters). (Optional)"
+        },
+        "avatarLetter": {
+          "type": "string",
+          "description": "The initial letter used for the user's default avatar."
+        },
+        "avatarColor": {
+          "type": "string",
+          "description": "The hexadecimal color code used for the background of the user's default avatar."
+        },
+        "joinedTimestamp": {
+          "type": "string",
+          "description": "The date and time when the user registered and joined the community.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "username",
+        "email",
+        "birthDate",
+        "district",
+        "zone",
+        "points",
+        "helpsGiven",
+        "sharesMade",
+        "averageRating",
+        "totalRatings",
+        "avatarLetter",
+        "avatarColor",
+        "joinedTimestamp"
+      ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a single community post, which can be a request for help, an SOS, a share, or an event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Post entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the post, e.g., 'Ajuda', 'SOS', 'Partilha', 'Evento'."
+        },
+        "text": {
+          "type": "string",
+          "description": "The main content or description of the post."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who created this post. (Relationship: UserProfile 1:N Post)"
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "The username of the post's author (denormalized for display)."
+        },
+        "authorAvatarLetter": {
+          "type": "string",
+          "description": "The avatar initial letter of the post's author (denormalized for display)."
+        },
+        "authorAvatarColor": {
+          "type": "string",
+          "description": "The avatar color of the post's author (denormalized for display)."
+        },
+        "district": {
+          "type": "string",
+          "description": "The district where the post is located or relevant to."
+        },
+        "zone": {
+          "type": "string",
+          "description": "The free-text zone or neighborhood within the district for the post's location."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the post's specified location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the post's specified location."
+        },
+        "candidateCount": {
+          "type": "number",
+          "description": "The number of users who have applied to help with this post."
+        },
+        "commentCount": {
+          "type": "number",
+          "description": "The total number of comments made on this post."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the post, e.g., 'aberto', 'em curso', 'resolvido'."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the post was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "text",
+        "authorId",
+        "authorUsername",
+        "authorAvatarLetter",
+        "authorAvatarColor",
+        "district",
+        "zone",
+        "latitude",
+        "longitude",
+        "candidateCount",
+        "commentCount",
+        "status",
+        "timestamp"
+      ]
+    },
+    "Application": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Application",
+      "type": "object",
+      "description": "Represents a user's application to help with a specific post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Application entity."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post to which this application pertains. (Relationship: Post 1:N Application)"
+        },
+        "applicantId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who submitted this application. (Relationship: UserProfile 1:N Application)"
+        },
+        "applicantUsername": {
+          "type": "string",
+          "description": "The username of the applicant (denormalized for display)."
+        },
+        "applicantZone": {
+          "type": "string",
+          "description": "The zone of the applicant (denormalized for display)."
+        },
+        "applicantAverageRating": {
+          "type": "number",
+          "description": "The average rating of the applicant at the time of application (denormalized for display)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the application was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the application, e.g., 'pending', 'accepted', 'rejected'."
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "applicantId",
+        "applicantUsername",
+        "applicantZone",
+        "applicantAverageRating",
+        "timestamp",
+        "status"
+      ]
+    },
+    "Rating": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Rating",
+      "type": "object",
+      "description": "Represents a star rating and optional comment given by a post owner to a helper after a post is resolved.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Rating entity."
+        },
+        "stars": {
+          "type": "number",
+          "description": "The star rating given, a value between 0 and 5."
+        },
+        "comment": {
+          "type": "string",
+          "description": "An optional comment accompanying the rating."
+        },
+        "raterId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who gave the rating (typically the post owner). (Relationship: UserProfile 1:N Rating)"
+        },
+        "raterUsername": {
+          "type": "string",
+          "description": "The username of the user who gave the rating (denormalized for display)."
+        },
+        "ratedUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who received the rating (the helper). (Relationship: UserProfile 1:N Rating)"
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post that led to this rating. (Relationship: Post 1:N Rating)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the rating was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "stars",
+        "raterId",
+        "raterUsername",
+        "ratedUserId",
+        "postId",
+        "timestamp"
+      ]
+    },
+    "ProfileComment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProfileComment",
+      "type": "object",
+      "description": "Represents a public comment or compliment left by one user on another user's profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProfileComment entity."
+        },
+        "profileOwnerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile whose profile this comment is on. (Relationship: UserProfile 1:N ProfileComment)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the public comment."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who authored this comment. (Relationship: UserProfile 1:N ProfileComment)"
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "The username of the comment's author (denormalized for display)."
+        },
+        "authorAvatarLetter": {
+          "type": "string",
+          "description": "The avatar initial letter of the comment's author (denormalized for display)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the comment was posted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "profileOwnerId",
+        "text",
+        "authorId",
+        "authorUsername",
+        "authorAvatarLetter",
+        "timestamp"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification sent to a specific user, often triggered by a new post in their region.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who is the recipient of this notification. (Relationship: UserProfile 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification, e.g., 'helpNeeded', 'urgentSOS', 'shareNearYou', 'newEvent'."
+        },
+        "message": {
+          "type": "string",
+          "description": "The full text content of the notification message."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post related to this notification, if applicable. (Relationship: Post 0:1 Notification)"
+        },
+        "zone": {
+          "type": "string",
+          "description": "The geographical zone mentioned in the notification, for context."
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Indicates whether the user has marked this notification as read."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the notification was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message",
+        "zone",
+        "isRead",
+        "timestamp"
+      ]
+    },
+    "PostComment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PostComment",
+      "type": "object",
+      "description": "Represents a comment made by a user on a specific post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PostComment entity."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post to which this comment belongs. (Relationship: Post 1:N PostComment)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the comment on the post."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who authored this comment. (Relationship: UserProfile 1:N PostComment)"
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "The username of the comment's author (denormalized for display)."
+        },
+        "authorAvatarLetter": {
+          "type": "string",
+          "description": "The avatar initial letter of the comment's author (denormalized for display)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the comment was posted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "text",
+        "authorId",
+        "authorUsername",
+        "authorAvatarLetter",
+        "timestamp"
+      ]
+    },
+    "Group": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Group",
+      "type": "object",
+      "description": "Represents a community group that users can join, featuring an internal feed and group chat.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Group entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "type": {
+          "type": "string",
+          "description": "The classification of the group, e.g., 'Família', 'Vizinhos', 'Bairro'."
+        },
+        "inviteCode": {
+          "type": "string",
+          "description": "A unique 6-letter uppercase code used for inviting new members to the group."
+        },
+        "adminId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who is the administrator of this group. (Relationship: UserProfile 1:N Group)"
+        },
+        "memberIds": {
+          "type": "array",
+          "description": "References to UserProfiles who are members of this group. (Relationship: UserProfile N:N Group)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the group was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "inviteCode",
+        "adminId",
+        "memberIds",
+        "timestamp"
+      ]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message sent within a private chat conversation between two users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChatMessage entity."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "Identifier for the chat conversation, typically formed by concatenating sorted user IDs (e.g., 'userA_userB')."
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the chat message."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who sent this message. (Relationship: UserProfile 1:N ChatMessage)"
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "The username of the message's author (denormalized for display)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the message was sent.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "chatId",
+        "text",
+        "authorId",
+        "authorUsername",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores the individual profile information for each user. Access is restricted to the authenticated user owning the profile. This includes fields like points and statistics which start at 0.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{profileOwnerId}/profileComments/{commentId}",
+        "definition": {
+          "entityName": "ProfileComment",
+          "schema": {
+            "$ref": "#/backend/entities/ProfileComment"
+          },
+          "description": "A subcollection for public comments left on a user's profile. Documents include 'profileOwnerId' and 'authorId' for explicit ownership and write permissions, enabling authorization independence.",
+          "params": [
+            {
+              "name": "profileOwnerId",
+              "description": "The unique Firebase Authentication UID of the user whose profile the comment is on."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier for the profile comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "A subcollection for notifications specific to each user. Each document contains 'userId' for path-based authorization, ensuring only the recipient can read/update their notifications.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication UID of the user receiving the notification."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier for the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "A top-level collection for all community posts (help, SOS, share, event). Documents include 'authorId' for ownership checks, and location/type fields for efficient querying for feed display. All authenticated users can read posts.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique identifier for the post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "PostComment",
+          "schema": {
+            "$ref": "#/backend/entities/PostComment"
+          },
+          "description": "A subcollection for comments on a specific post. Documents include 'authorId' for comment ownership and 'postId' for context, enabling authorization independence for comment management.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique identifier for the parent post."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier for the post comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/posts/{postId}/applications/{applicationId}",
+        "definition": {
+          "entityName": "Application",
+          "schema": {
+            "$ref": "#/backend/entities/Application"
+          },
+          "description": "A subcollection for applications to help with a post. Documents include 'applicantId' (for applicant's access) and denormalized 'postAuthorId' (from the parent Post) for the post owner's authorization independence to manage applications.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique identifier for the parent post."
+            },
+            {
+              "name": "applicationId",
+              "description": "The unique identifier for the application."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ratings/{ratingId}",
+        "definition": {
+          "entityName": "Rating",
+          "schema": {
+            "$ref": "#/backend/entities/Rating"
+          },
+          "description": "A top-level collection for all user ratings. Documents include 'raterId', 'ratedUserId', and denormalized 'postOwnerId' (from the related Post) for authorization independence, ensuring only the authorized post owner can create/update the rating. Useful for calculating user's average ratings.",
+          "params": [
+            {
+              "name": "ratingId",
+              "description": "The unique identifier for the rating."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}",
+        "definition": {
+          "entityName": "Group",
+          "schema": {
+            "$ref": "#/backend/entities/Group"
+          },
+          "description": "A top-level collection for community groups. Documents include 'adminId' and 'memberIds' array for explicit membership and administrative authorization.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "A subcollection for chat messages within a group. Documents are based on the ChatMessage schema but are extended to include denormalized 'groupAdminId' and a 'groupMembers' map (UID: true) from the parent Group for authorization independence, ensuring only group members can access messages.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the parent group."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the chat message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chats/{chatId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "A subcollection for private 1:1 chat messages. Documents are based on the ChatMessage schema but are extended to include denormalized 'participantIds' (an array of UIDs) for authorization independence, ensuring only the participants can access the messages.",
+          "params": [
+            {
+              "name": "chatId",
+              "description": "The unique identifier for the private chat conversation, typically formed by concatenating sorted user IDs (e.g., 'uidA_uidB')."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the chat message."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for 'Portugal Unido' is designed around the core principles of Authorization Independence, Structural Segregation, and Access Modeling, prioritizing security, scalability, and debuggability. \n\n**Authorization Independence:** This is achieved through extensive denormalization of authorization context directly into the relevant documents. For instance, `Application` documents will include the `postAuthorId` from their parent `Post`, allowing rules to determine access without requiring a `get()` call to the parent `Post` document. Similarly, `Rating` documents will denormalize `postOwnerId` to ensure the rater is authorized. For chat messages, private 1:1 `ChatMessage` documents will contain a `participantIds` array, and `ChatMessage` documents used for group chats will include denormalized `groupAdminId` and a `groupMembers` map from their parent `Group`. This eliminates hierarchical authorization dependencies, enabling atomic operations and simplifying security rules. \n\n**Structural Segregation:** Data is organized into collections based on its security posture. For example, user-specific private data (notifications, profile comments) resides in subcollections under `/users/{userId}`, ensuring strict path-based ownership. Publicly discoverable data like posts are in a top-level `/posts` collection, and collaborative data like groups and their chats are under `/groups/{groupId}`. This reduces rule complexity by making access patterns consistent within each collection.\n\n**Access Modeling & QAPs (Rules are not Filters):**\n*   **Private Data:** `UserProfile` data, `Notifications`, and `ProfileComments` are stored under `/users/{userId}/...`. Security rules will enforce that only the authenticated user (`request.auth.uid`) can access their own profile data, notifications, and manage comments on their profile. This implicitly supports QAPs for `list` operations, as a user can only query their own dedicated subcollections.\n*   **Public/Global Data:** `Posts` are in a top-level collection `/posts`. Security rules for this collection will permit all authenticated users to read documents. Filters (by district, type, status, proximity) will be applied client-side using efficient queries, ensuring that rules do not act as filters and `list` operations are performant and correctly secured. The `authorId` within each `Post` document enables ownership checks for modification.\n*   **Collaborative Data:** `Groups` and their associated `ChatMessage` (for group chats) utilize a `memberIds` array in the `Group` document and a denormalized `groupMembers` map (or `groupAdminId`) in each `ChatMessage` for robust authorization. Rules will check `request.auth.uid` against these denormalized fields, supporting `list` operations for members and administrators without `get()` calls on parent documents for subcollection access.\n*   **Ratings:** Stored in a top-level `/ratings` collection, they include `postOwnerId` and `ratedUserId` for clear authorization. This allows efficient querying to calculate `averageRating` for any user's profile and ensures that only the authorized post owner can create a rating for a specific helper.\n*   **Chat Messages (1:1 Private):** Stored under `/chats/{chatId}/messages`, each `ChatMessage` document contains a `participantIds` array. Rules will verify `request.auth.uid` is present in this array for read/write access. `list` operations for messages within a specific chat are therefore secure and efficient.\n\nThis design leverages denormalization to keep security rules simple and atomic, while structural segregation ensures that data with different security requirements are not co-mingled, facilitating both robust security and straightforward debugging. While the base `ChatMessage` entity is used for both 1:1 and group chats, its actual stored structure is contextually extended with denormalized fields to meet authorization independence requirements, which is explicitly noted."
+  }
+}
