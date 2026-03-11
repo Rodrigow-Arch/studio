@@ -1,3 +1,4 @@
+
 import { create } from 'react';
 
 // Using a simple state management pattern since we need to persist to localStorage
@@ -83,8 +84,13 @@ const isClient = typeof window !== 'undefined';
 
 const getInitialData = (key: string, defaultValue: any) => {
   if (!isClient) return defaultValue;
-  const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : defaultValue;
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (e) {
+    console.error(`Error loading ${key} from localStorage`, e);
+    return defaultValue;
+  }
 };
 
 // This is a simple global state observable
@@ -112,20 +118,31 @@ export const store = {
 
   save() {
     if (!isClient) return;
-    localStorage.setItem('pu_users', JSON.stringify(this.users));
-    localStorage.setItem('pu_current_user', JSON.stringify(this.currentUser));
-    localStorage.setItem('pu_posts', JSON.stringify(this.posts));
-    localStorage.setItem('pu_notifications', JSON.stringify(this.notifications));
-    localStorage.setItem('pu_comments', JSON.stringify(this.comments));
-    localStorage.setItem('pu_profile_comments', JSON.stringify(this.profileComments));
-    localStorage.setItem('pu_ratings', JSON.stringify(this.ratings));
-    localStorage.setItem('pu_groups', JSON.stringify(this.groups));
-    localStorage.setItem('pu_chats', JSON.stringify(this.chats));
+    try {
+      localStorage.setItem('pu_users', JSON.stringify(this.users));
+      localStorage.setItem('pu_current_user', JSON.stringify(this.currentUser));
+      localStorage.setItem('pu_posts', JSON.stringify(this.posts));
+      localStorage.setItem('pu_notifications', JSON.stringify(this.notifications));
+      localStorage.setItem('pu_comments', JSON.stringify(this.comments));
+      localStorage.setItem('pu_profile_comments', JSON.stringify(this.profileComments));
+      localStorage.setItem('pu_ratings', JSON.stringify(this.ratings));
+      localStorage.setItem('pu_groups', JSON.stringify(this.groups));
+      localStorage.setItem('pu_chats', JSON.stringify(this.chats));
+    } catch (e) {
+      console.error("Error saving to localStorage", e);
+    }
     notify();
   },
 
   login(user: User) {
     this.currentUser = user;
+    // Update users array with potential changes
+    const idx = this.users.findIndex(u => u.uid === user.uid);
+    if (idx === -1) {
+      this.users.push(user);
+    } else {
+      this.users[idx] = user;
+    }
     this.save();
   },
 
@@ -167,6 +184,16 @@ export const store = {
     // Award points
     if (this.currentUser) {
       this.currentUser.points += 5;
+    }
+    this.save();
+  },
+
+  updateUser(updatedData: Partial<User>) {
+    if (!this.currentUser) return;
+    this.currentUser = { ...this.currentUser, ...updatedData };
+    const idx = this.users.findIndex(u => u.uid === this.currentUser?.uid);
+    if (idx !== -1) {
+      this.users[idx] = this.currentUser;
     }
     this.save();
   }

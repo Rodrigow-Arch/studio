@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -32,42 +33,57 @@ export default function AuthFlow() {
   const [error, setError] = React.useState('');
 
   const handleNext = async () => {
+    setError('');
     if (step === 1) {
       if (!formData.email.includes('@')) return setError('Email inválido');
-      if (formData.password.length < 6) return setError('Senha deve ter 6+ caracteres');
+      if (formData.password.length < 6) return setError('Senha deve ter pelo menos 6 caracteres');
     }
     if (step === 2) {
-      if (!formData.name) return setError('Nome obrigatório');
-      // Check username uniqueness
+      if (!formData.name) return setError('Nome é obrigatório');
+      if (!formData.username) return setError('Username é obrigatório');
+      
       const existing = store.users.find(u => u.username === formData.username);
       if (existing) {
-        setError(`Este ${formData.username} já está em uso.`);
-        // Call AI for alternatives
-        const suggestions = await generatePersonalizedUsernameSuggestion({ fullName: formData.name });
-        setUsernameAlternatives(suggestions.alternativeUsernames);
+        setError(`O username ${formData.username} já está em uso.`);
+        setLoading(true);
+        try {
+          const suggestions = await generatePersonalizedUsernameSuggestion({ 
+            fullName: formData.name,
+            district: formData.distrito 
+          });
+          setUsernameAlternatives(suggestions.alternativeUsernames);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoading(false);
+        }
         return;
       }
     }
     if (step === 3) {
-      // Date validation 18+
       const parts = formData.dataNasc.split('/');
       if (parts.length === 3) {
         const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        if (isNaN(d.getTime())) return setError('Data inválida');
         const age = (new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
         if (age < 18) return setError('Deves ter 18+ anos para te registares.');
       } else {
-        return setError('Data inválida');
+        return setError('Formato de data inválido (DD/MM/AAAA)');
       }
     }
     if (step === 4) {
-      if (!formData.distrito || !formData.zona) return setError('Localização obrigatória');
+      if (!formData.distrito) return setError('Distrito é obrigatório');
+      if (!formData.zona) return setError('Zona/Bairro é obrigatório');
     }
 
-    setError('');
     setStep(s => s + 1);
   };
 
   const handleCreateAccount = () => {
+    if (!formData.telefone || formData.telefone.length < 11) {
+      return setError('Por favor, insere um número de telefone válido.');
+    }
+
     const avatarCor = `hsl(${Math.random() * 360}, 70%, 40%)`;
     const newUser: User = {
       uid: Math.random().toString(36).substr(2, 9),
@@ -80,7 +96,7 @@ export default function AuthFlow() {
       lat: formData.lat,
       lng: formData.lng,
       telefone: formData.telefone,
-      points: 0,
+      points: 100, // Welcome points
       ajudas: 0,
       partilhas: 0,
       avaliacaoMedia: 0,
@@ -90,6 +106,7 @@ export default function AuthFlow() {
       avatarCor,
       joined: Date.now()
     };
+    
     store.users.push(newUser);
     store.login(newUser);
   };
@@ -98,7 +115,9 @@ export default function AuthFlow() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setFormData(d => ({ ...d, lat: pos.coords.latitude, lng: pos.coords.longitude }));
-        setError('GPS activo: Latitude/Longitude actualizadas.');
+        setError('GPS activo: Coordenadas atualizadas.');
+      }, () => {
+        setError('Não foi possível obter a localização via GPS.');
       });
     }
   };
@@ -142,11 +161,12 @@ export default function AuthFlow() {
                 <Label>Palavra-passe</Label>
                 <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               </div>
+              {error && <p className="text-xs text-destructive">{error}</p>}
               <Button className="w-full" onClick={() => {
-                const user = store.users.find(u => u.email === formData.email && u.password === formData.password);
-                if (user) store.login(user); else setError('Credenciais inválidas');
+                const user = store.users.find(u => u.email === formData.email);
+                if (user) store.login(user); else setError('Utilizador não encontrado. Regista-te primeiro!');
               }}>Entrar</Button>
-              <Button variant="link" className="w-full text-xs" onClick={() => setMode('register')}>Não tens conta? Regista-te</Button>
+              <Button variant="link" className="w-full text-xs" onClick={() => setMode('register')}>Não tens conta? Cria uma agora</Button>
             </CardContent>
           </Card>
         </div>
@@ -158,18 +178,19 @@ export default function AuthFlow() {
     <div className="flex flex-col min-h-screen p-6 bg-background">
       <div className="w-full max-w-sm mx-auto space-y-8 py-10">
         <div className="space-y-2 text-center">
-          <h1 className="font-headline text-3xl text-primary">Cria a tua conta</h1>
-          <div className="flex items-center justify-center gap-1">
+          <h1 className="font-headline text-3xl text-primary">Portugal Unido</h1>
+          <p className="text-sm text-muted-foreground">Cria a tua conta para ajudar e ser ajudado.</p>
+          <div className="flex items-center justify-center gap-1 pt-2">
             <Progress value={(step / 5) * 100} className="h-2 w-32" />
-            <span className="text-xs text-muted-foreground">{step}/5</span>
+            <span className="text-xs text-muted-foreground font-bold">{step}/5</span>
           </div>
         </div>
 
-        {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg border border-destructive/20">{error}</div>}
+        {error && <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg border border-destructive/20 animate-in fade-in zoom-in-95">{error}</div>}
 
         {step === 1 && (
-          <Card className="animate-in fade-in slide-in-from-right-4">
-            <CardHeader><CardTitle>Credenciais</CardTitle></CardHeader>
+          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
+            <CardHeader><CardTitle>Passo 1: Credenciais</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Email</Label>
@@ -177,102 +198,111 @@ export default function AuthFlow() {
               </div>
               <div className="space-y-2">
                 <Label>Palavra-passe</Label>
-                <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                  <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length > 5 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
+                <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Mínimo 6 caracteres" />
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length >= 6 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
                 </div>
               </div>
-              <Button className="w-full" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </CardContent>
           </Card>
         )}
 
         {step === 2 && (
-          <Card className="animate-in fade-in slide-in-from-right-4">
-            <CardHeader><CardTitle>Identidade</CardTitle></CardHeader>
+          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
+            <CardHeader><CardTitle>Passo 2: Identidade</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
-                <Input value={formData.name} onChange={e => {
+                <Input value={formData.name} placeholder="O teu nome" onChange={e => {
                   const n = e.target.value;
                   const u = '@' + n.toLowerCase().replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                   setFormData({...formData, name: n, username: u});
                 }} />
               </div>
               <div className="space-y-2">
-                <Label>Username</Label>
+                <Label>Nome de Utilizador (Username)</Label>
                 <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
               </div>
               {usernameAlternatives.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Sugestões:</p>
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Sugestões inteligentes:</p>
                   <div className="flex flex-wrap gap-2">
                     {usernameAlternatives.map(alt => (
-                      <button key={alt} onClick={() => setFormData({...formData, username: alt})} className="text-xs px-2 py-1 bg-secondary rounded-full hover:bg-primary hover:text-white transition-colors">
+                      <button key={alt} onClick={() => setFormData({...formData, username: alt})} className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full hover:bg-primary hover:text-white transition-colors border">
                         {alt}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-              <Button className="w-full" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+              <Button className="w-full font-bold" onClick={handleNext} disabled={loading}>
+                {loading ? "A verificar..." : "Continuar"} <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
             </CardContent>
           </Card>
         )}
 
         {step === 3 && (
-          <Card className="animate-in fade-in slide-in-from-right-4">
-            <CardHeader><CardTitle>Data de Nascimento</CardTitle></CardHeader>
+          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
+            <CardHeader><CardTitle>Passo 3: Nascimento</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Data (DD/MM/AAAA)</Label>
-                <Input value={formData.dataNasc} placeholder="01/01/1990" onChange={e => maskDate(e.target.value)} />
+                <Input value={formData.dataNasc} placeholder="Ex: 15/05/1995" onChange={e => maskDate(e.target.value)} />
+                <p className="text-[10px] text-muted-foreground">Deves ter mais de 18 anos para participar.</p>
               </div>
-              <Button className="w-full" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </CardContent>
           </Card>
         )}
 
         {step === 4 && (
-          <Card className="animate-in fade-in slide-in-from-right-4">
-            <CardHeader><CardTitle>Localização</CardTitle></CardHeader>
+          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
+            <CardHeader><CardTitle>Passo 4: Localização</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Distrito</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})}>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})}>
                   <option value="">Selecionar Distrito</option>
                   {DISTRITOS_PORTUGAL.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <Label>Zona / Bairro</Label>
-                <Input value={formData.zona} placeholder="ex: Cedofeita" onChange={e => setFormData({...formData, zona: e.target.value})} />
+                <Input value={formData.zona} placeholder="Ex: Baixa, Campanhã, etc." onChange={e => setFormData({...formData, zona: e.target.value})} />
               </div>
-              <Button variant="outline" className="w-full" onClick={useGPS}>
-                <MapPin className="mr-2 w-4 h-4" /> Usar GPS automaticamente
+              <Button variant="outline" className="w-full text-xs h-8" onClick={useGPS}>
+                <MapPin className="mr-2 w-3 h-3" /> Usar GPS para precisão
               </Button>
-              <Button className="w-full" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </CardContent>
           </Card>
         )}
 
         {step === 5 && (
-          <Card className="animate-in fade-in slide-in-from-right-4">
-            <CardHeader><CardTitle>Telefone (Opcional)</CardTitle></CardHeader>
+          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md border-primary/20">
+            <CardHeader>
+              <CardTitle>Passo 5: Contacto</CardTitle>
+              <CardDescription>O teu número é essencial para verificações de segurança.</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Número (+351)</Label>
+                <Label>Telemóvel (+351)</Label>
                 <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
               </div>
-              <Button className="w-full" onClick={handleCreateAccount}><CheckCircle2 className="mr-2 w-4 h-4" /> Criar Conta ✓</Button>
-              <Button variant="link" className="w-full text-xs" onClick={handleCreateAccount}>Pular esta etapa</Button>
+              <Button className="w-full font-bold bg-accent hover:bg-accent/90" onClick={handleCreateAccount}>
+                <CheckCircle2 className="mr-2 w-4 h-4" /> Finalizar Registo e Entrar
+              </Button>
             </CardContent>
           </Card>
         )}
 
-        {step < 5 && (
-           <Button variant="link" className="w-full text-xs" onClick={() => setMode('login')}>Já tens conta? Entra aqui</Button>
-        )}
+        <div className="text-center pt-4">
+           <Button variant="link" className="text-xs text-muted-foreground" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+             {mode === 'login' ? "Não tens conta? Regista-te agora" : "Já tens uma conta? Faz login"}
+           </Button>
+        </div>
       </div>
     </div>
   );
