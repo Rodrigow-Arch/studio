@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -7,11 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { Plus } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 
-export default function Feed({ initialShowCreate = false, onCreated }: { initialShowCreate?: boolean, onCreated?: () => void }) {
-  const { user } = useUser();
+interface FeedProps {
+  initialShowCreate?: boolean;
+  onCreated?: () => void;
+  onProfileClick: (uid: string) => void;
+}
+
+export default function Feed({ initialShowCreate = false, onCreated, onProfileClick }: FeedProps) {
   const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(initialShowCreate);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
@@ -77,7 +81,7 @@ export default function Feed({ initialShowCreate = false, onCreated }: { initial
           </div>
         ) : (
           filteredPosts.map(post => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} onProfileClick={onProfileClick} />
           ))
         )}
       </div>

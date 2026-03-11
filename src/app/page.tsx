@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from 'react';
-import { useStore } from '@/lib/store';
 import AuthFlow from '@/components/auth/AuthFlow';
 import BottomNav from '@/components/layout/BottomNav';
 import Feed from '@/components/feed/Feed';
@@ -25,6 +24,7 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = React.useState('feed');
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [viewingUserId, setViewingUserId] = React.useState<string | null>(null);
 
   if (isUserLoading || isProfileLoading) {
     return (
@@ -43,36 +43,52 @@ export default function Home() {
     return <AuthFlow />;
   }
 
+  const handleProfileClick = (uid: string) => {
+    setViewingUserId(uid);
+  };
+
   const renderContent = () => {
+    if (viewingUserId) {
+      return (
+        <ProfilePage 
+          userId={viewingUserId} 
+          onBack={() => setViewingUserId(null)} 
+        />
+      );
+    }
+
     if (showNotifications) return <NotificationsPage onClose={() => setShowNotifications(false)} />;
 
     switch (activeTab) {
       case 'groups':
         return <GroupsPage />;
       case 'add':
-        return <Feed initialShowCreate={true} onCreated={() => setActiveTab('feed')} />;
+        return <Feed initialShowCreate={true} onCreated={() => setActiveTab('feed')} onProfileClick={handleProfileClick} />;
       case 'messages':
         return <ChatList />;
       case 'profile':
-        return <ProfilePage />;
+        return <ProfilePage userId={user.uid} />;
       case 'feed':
       default:
-        return <Feed />;
+        return <Feed onProfileClick={handleProfileClick} />;
     }
   };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <Header onNotificationClick={() => setShowNotifications(true)} />
+      {!viewingUserId && <Header onNotificationClick={() => setShowNotifications(true)} />}
       
       <div className="flex-1 overflow-y-auto pb-24">
         {renderContent()}
       </div>
 
-      <BottomNav activeTab={activeTab} onTabChange={(tab) => {
-        setShowNotifications(false);
-        setActiveTab(tab);
-      }} />
+      {!viewingUserId && (
+        <BottomNav activeTab={activeTab} onTabChange={(tab) => {
+          setShowNotifications(false);
+          setActiveTab(tab);
+          setViewingUserId(null);
+        }} />
+      )}
     </div>
   );
 }

@@ -4,38 +4,48 @@ import * as React from 'react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft } from "lucide-react";
 import RatingStats from './RatingStats';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, collection, query, where, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 
-export default function ProfilePage() {
-  const { user } = useUser();
+interface ProfilePageProps {
+  userId?: string;
+  onBack?: () => void;
+}
+
+export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
+  const { user: currentUser } = useUser();
   const db = useFirestore();
   const auth = useAuth();
   const [showSettings, setShowSettings] = React.useState(false);
   const [postCount, setPostCount] = React.useState(0);
 
+  // Use either the passed userId or the currently logged in user's ID
+  const targetUid = userId || currentUser?.uid;
+  const isOwnProfile = targetUid === currentUser?.uid;
+
   const userDocRef = useMemoFirebase(() => {
-    return user ? doc(db, 'users', user.uid) : null;
-  }, [db, user]);
+    return targetUid ? doc(db, 'users', targetUid) : null;
+  }, [db, targetUid]);
 
   const { data: userProfile, isLoading } = useDoc(userDocRef);
 
   React.useEffect(() => {
-    if (user) {
-      const q = query(collection(db, "posts"), where("authorId", "==", user.uid));
+    if (targetUid) {
+      const q = query(collection(db, "posts"), where("authorId", "==", targetUid));
       getDocs(q).then(snapshot => {
         setPostCount(snapshot.size);
       });
     }
-  }, [db, user]);
+  }, [db, targetUid]);
 
   if (isLoading || !userProfile) {
     return (
-      <div className="flex items-center justify-center p-20">
+      <div className="flex flex-col items-center justify-center h-full p-10 space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-xs text-muted-foreground">A carregar perfil...</p>
       </div>
     );
   }
@@ -45,16 +55,25 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4">
+    <div className="animate-in fade-in slide-in-from-bottom-4 min-h-full bg-background">
       <div className="bg-primary h-32 relative">
+         <div className="absolute top-4 left-4 flex gap-2">
+            {onBack && (
+              <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full" onClick={onBack}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
+         </div>
          <div className="absolute top-4 right-4 flex gap-2">
-            <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full" onClick={() => setShowSettings(true)}>
-              <X className="w-5 h-5 rotate-45" />
-            </Button>
+            {isOwnProfile && (
+              <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full" onClick={() => setShowSettings(true)}>
+                <X className="w-5 h-5 rotate-45" />
+              </Button>
+            )}
          </div>
       </div>
 
-      <div className="px-6 -mt-12 space-y-6 pb-10">
+      <div className="px-6 -mt-12 space-y-6 pb-24">
         <div className="flex flex-col items-center text-center space-y-3">
           <Avatar className="w-24 h-24 border-4 border-white shadow-lg" style={{ backgroundColor: userProfile.avatarColor }}>
             <AvatarFallback className="bg-transparent text-white text-4xl font-headline">{userProfile.avatarLetter}</AvatarFallback>
@@ -84,9 +103,9 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-2">
-          <h3 className="font-headline text-lg">Sobre mim</h3>
+          <h3 className="font-headline text-lg">Sobre {isOwnProfile ? 'mim' : userProfile.fullName.split(' ')[0]}</h3>
           <div className="text-sm text-muted-foreground bg-secondary/20 p-4 rounded-2xl italic">
-            {userProfile.description || "Conta algo sobre ti à comunidade..."}
+            {userProfile.description || (isOwnProfile ? "Conta algo sobre ti à comunidade..." : "Este utilizador ainda não adicionou uma descrição.")}
           </div>
         </div>
 
@@ -109,13 +128,15 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/5" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" /> Sair da Conta
-        </Button>
+        {isOwnProfile && (
+          <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/5" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" /> Sair da Conta
+          </Button>
+        )}
       </div>
 
       {showSettings && (
-        <div className="fixed inset-0 z-50 bg-white p-6 animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-[100] bg-white p-6 animate-in slide-in-from-right duration-300">
            <div className="flex items-center justify-between mb-8">
               <h2 className="font-headline text-2xl">Definições</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowSettings(false)}><X className="w-6 h-6" /></Button>
