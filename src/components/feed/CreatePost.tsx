@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from 'react';
-import { PostType } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { X, Sparkles, MapPin } from "lucide-react";
 import { smartPostContentSuggestion } from "@/ai/flows/smart-post-content-suggestion-flow";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, doc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
+type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
 
 export default function CreatePost({ onClose }: { onClose: () => void }) {
   const { user } = useUser();
@@ -43,8 +44,8 @@ export default function CreatePost({ onClose }: { onClose: () => void }) {
         authorAvatarColor: userProfile.avatarColor,
         district: userProfile.district,
         zone: userProfile.zone,
-        latitude: userProfile.latitude,
-        longitude: userProfile.longitude,
+        latitude: userProfile.latitude || 0,
+        longitude: userProfile.longitude || 0,
         candidateCount: 0,
         commentCount: 0,
         status: 'aberto',
@@ -53,7 +54,7 @@ export default function CreatePost({ onClose }: { onClose: () => void }) {
 
       await addDoc(collection(db, "posts"), postData);
       
-      // Update points in Firestore
+      // Atribui pontos pela participação
       await updateDoc(doc(db, "users", user.uid), {
         points: increment(15)
       });
@@ -125,10 +126,14 @@ export default function CreatePost({ onClose }: { onClose: () => void }) {
 
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {userProfile?.zone}, {userProfile?.district}</span>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" onClick={getSuggestions} disabled={loading}>
-              <button className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-accent" /> Sugerir ideias
-              </button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 text-[10px] gap-1" 
+              onClick={getSuggestions} 
+              disabled={loading}
+            >
+              <Sparkles className="w-3 h-3 text-accent" /> Sugerir ideias
             </Button>
           </div>
 

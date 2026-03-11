@@ -1,22 +1,42 @@
+
 "use client";
 
 import * as React from 'react';
-import { useStore, store, Post, PostType } from '@/lib/store';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { Plus, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 
 export default function Feed({ initialShowCreate = false, onCreated }: { initialShowCreate?: boolean, onCreated?: () => void }) {
-  const { posts, currentUser } = useStore();
+  const { user } = useUser();
+  const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(initialShowCreate);
-  const [filterType, setFilterType] = React.useState<PostType | 'Tudo'>('Tudo');
+  const [filterType, setFilterType] = React.useState<string>('Tudo');
 
-  const filteredPosts = posts.filter(p => {
-    if (filterType !== 'Tudo' && p.tipo !== filterType) return false;
-    return true;
-  });
+  const postsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+  }, [db]);
+
+  const { data: posts, isLoading } = useCollection(postsQuery);
+
+  const filteredPosts = React.useMemo(() => {
+    if (!posts) return [];
+    if (filterType === 'Tudo') return posts;
+    return posts.filter(p => p.type === filterType);
+  }, [posts, filterType]);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-32 bg-secondary/50 animate-pulse rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-6">
@@ -33,7 +53,7 @@ export default function Feed({ initialShowCreate = false, onCreated }: { initial
             key={t}
             variant={filterType === t ? 'default' : 'secondary'}
             className="cursor-pointer px-4 py-1.5 whitespace-nowrap"
-            onClick={() => setFilterType(t as any)}
+            onClick={() => setFilterType(t)}
           >
             {t}
           </Badge>
@@ -52,7 +72,7 @@ export default function Feed({ initialShowCreate = false, onCreated }: { initial
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 px-10">
             <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center text-3xl">🇵🇹</div>
             <h3 className="font-medium text-lg">Ainda não há posts na tua zona.</h3>
-            <p className="text-muted-foreground text-sm">Sê o primeiro a conectar-te com os vizinhos em {currentUser?.distrito}!</p>
+            <p className="text-muted-foreground text-sm">Sê o primeiro a conectar-te com os teus vizinhos!</p>
             <Button onClick={() => setShowCreate(true)}>Publicar Agora</Button>
           </div>
         ) : (
