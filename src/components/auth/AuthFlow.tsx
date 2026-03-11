@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -8,11 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { store, User } from "@/lib/store";
 import { MapPin, CheckCircle2, ArrowRight } from "lucide-react";
 import { generatePersonalizedUsernameSuggestion } from "@/ai/flows/personalized-username-suggestion";
+import { useAuth, useFirestore } from "@/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthFlow() {
+  const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
+
   const [mode, setMode] = React.useState<'login' | 'register'>('register');
   const [step, setStep] = React.useState(1);
   const [formData, setFormData] = React.useState({
@@ -24,7 +30,7 @@ export default function AuthFlow() {
     distrito: '',
     zona: '',
     telefone: '',
-    lat: 38.7223, // Default Lisbon
+    lat: 38.7223,
     lng: -9.1393
   });
 
@@ -41,24 +47,6 @@ export default function AuthFlow() {
     if (step === 2) {
       if (!formData.name) return setError('Nome é obrigatório');
       if (!formData.username) return setError('Username é obrigatório');
-      
-      const existing = store.users.find(u => u.username === formData.username);
-      if (existing) {
-        setError(`O username ${formData.username} já está em uso.`);
-        setLoading(true);
-        try {
-          const suggestions = await generatePersonalizedUsernameSuggestion({ 
-            fullName: formData.name,
-            district: formData.distrito 
-          });
-          setUsernameAlternatives(suggestions.alternativeUsernames);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
     }
     if (step === 3) {
       const parts = formData.dataNasc.split('/');
@@ -79,43 +67,71 @@ export default function AuthFlow() {
     setStep(s => s + 1);
   };
 
-  const handleCreateAccount = () => {
+  const handleLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+    } catch (err: any) {
+      setError('Email ou palavra-passe incorretos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateAccount = async () => {
     if (!formData.telefone || formData.telefone.length < 11) {
       return setError('Por favor, insere um número de telefone válido.');
     }
 
-    const avatarCor = `hsl(${Math.random() * 360}, 70%, 40%)`;
-    const newUser: User = {
-      uid: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      username: formData.username.startsWith('@') ? formData.username : `@${formData.username}`,
-      email: formData.email,
-      dataNasc: formData.dataNasc,
-      distrito: formData.distrito,
-      zona: formData.zona,
-      lat: formData.lat,
-      lng: formData.lng,
-      telefone: formData.telefone,
-      points: 100, // Welcome points
-      ajudas: 0,
-      partilhas: 0,
-      avaliacaoMedia: 0,
-      totalAvaliacoes: 0,
-      descricao: '',
-      avatarLetra: formData.name.charAt(0).toUpperCase(),
-      avatarCor,
-      joined: Date.now()
-    };
+    setLoading(true);
+    setError('');
     
-    store.users.push(newUser);
-    store.login(newUser);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      const avatarCor = `hsl(${Math.random() * 360}, 70%, 40%)`;
+      
+      const userProfile = {
+        id: user.uid,
+        fullName: formData.name,
+        username: formData.username.startsWith('@') ? formData.username : `@${formData.username}`,
+        email: formData.email,
+        birthDate: formData.dataNasc,
+        district: formData.distrito,
+        zone: formData.zona,
+        latitude: formData.lat,
+        longitude: formData.lng,
+        phoneNumber: formData.telefone,
+        points: 0,
+        helpsGiven: 0,
+        sharesMade: 0,
+        averageRating: 0,
+        totalRatings: 0,
+        avatarLetter: formData.name.charAt(0).toUpperCase(),
+        avatarColor: avatarCor,
+        joinedTimestamp: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, "users", user.uid), userProfile);
+      
+      toast({
+        title: "Bem-vindo!",
+        description: "A tua conta foi criada com sucesso.",
+      });
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro ao criar a conta.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const useGPS = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setFormData(d => ({ ...d, lat: pos.coords.latitude, lng: pos.coords.longitude }));
-        setError('GPS activo: Coordenadas atualizadas.');
+        toast({ description: "Coordenadas GPS obtidas com sucesso." });
       }, () => {
         setError('Não foi possível obter a localização via GPS.');
       });
@@ -162,10 +178,9 @@ export default function AuthFlow() {
                 <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               </div>
               {error && <p className="text-xs text-destructive">{error}</p>}
-              <Button className="w-full" onClick={() => {
-                const user = store.users.find(u => u.email === formData.email);
-                if (user) store.login(user); else setError('Utilizador não encontrado. Regista-te primeiro!');
-              }}>Entrar</Button>
+              <Button className="w-full" onClick={handleLogin} disabled={loading}>
+                {loading ? "A entrar..." : "Entrar"}
+              </Button>
               <Button variant="link" className="w-full text-xs" onClick={() => setMode('register')}>Não tens conta? Cria uma agora</Button>
             </CardContent>
           </Card>
@@ -224,20 +239,8 @@ export default function AuthFlow() {
                 <Label>Nome de Utilizador (Username)</Label>
                 <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
               </div>
-              {usernameAlternatives.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Sugestões inteligentes:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {usernameAlternatives.map(alt => (
-                      <button key={alt} onClick={() => setFormData({...formData, username: alt})} className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full hover:bg-primary hover:text-white transition-colors border">
-                        {alt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <Button className="w-full font-bold" onClick={handleNext} disabled={loading}>
-                {loading ? "A verificar..." : "Continuar"} <ArrowRight className="ml-2 w-4 h-4" />
+              <Button className="w-full font-bold" onClick={handleNext}>
+                Continuar <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
@@ -291,8 +294,8 @@ export default function AuthFlow() {
                 <Label>Telemóvel (+351)</Label>
                 <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
               </div>
-              <Button className="w-full font-bold bg-accent hover:bg-accent/90" onClick={handleCreateAccount}>
-                <CheckCircle2 className="mr-2 w-4 h-4" /> Finalizar Registo e Entrar
+              <Button className="w-full font-bold bg-accent hover:bg-accent/90" onClick={handleCreateAccount} disabled={loading}>
+                {loading ? "A criar conta..." : "Finalizar Registo e Entrar"} <CheckCircle2 className="ml-2 w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
