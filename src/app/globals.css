@@ -12,11 +12,11 @@
     --popover-foreground: 153 60% 5%;
     --primary: 142 59% 25%;
     --primary-foreground: 132 20% 98%;
-    --secondary: 132 30% 92%;
+    --secondary: 132 30% 90%;
     --secondary-foreground: 142 59% 20%;
-    --muted: 132 10% 90%;
+    --muted: 132 10% 85%;
     --muted-foreground: 142 20% 35%;
-    --accent: 120 60% 50%;
+    --accent: 142 59% 20%;
     --accent-foreground: 132 20% 98%;
     --destructive: 354 85% 43%;
     --destructive-foreground: 0 0% 98%;
@@ -54,8 +54,13 @@ button, .interactive-card {
   @apply transition-all duration-200 active:scale-95 cursor-pointer;
 }
 
+/* Hover e Active mais escuros para evitar o aspeto esbranquiçado */
 button:hover {
-  @apply filter brightness-110;
+  @apply filter brightness-90;
+}
+
+button:active {
+  @apply filter brightness-75 scale-95;
 }
 
 /* Scrollbar invisível mas funcional */
