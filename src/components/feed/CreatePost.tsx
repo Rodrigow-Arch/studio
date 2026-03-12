@@ -61,7 +61,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     setLoading(true);
 
     try {
-      // Aplicar filtro de profanidade
       const cleanText = filterProfanity(texto);
 
       const postData = {
@@ -163,7 +162,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar?</Label>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar? <span className="text-destructive">*</span></Label>
               <Textarea 
                 placeholder={tipo === 'SOS' ? "Descreve a tua urgência com clareza..." : "Escreve aqui..."} 
                 value={texto} 
@@ -191,7 +190,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
                 
                 {parseFloat(recompensa) > 0 && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Método de Pagamento (Obrigatório)</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Método de Pagamento <span className="text-destructive">*</span></Label>
                     <RadioGroup value={metodoPagamento} onValueChange={setMetodoPagamento} className="flex gap-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Dinheiro" id="dinheiro" />

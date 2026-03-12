@@ -45,7 +45,6 @@ export default function CreateGroup({ onClose }: { onClose: () => void }) {
         groupsAdmin: increment(1)
       });
 
-      // Verificar badges após criar grupo
       await checkAndAwardBadges(db, user.uid);
       
       toast({
@@ -76,7 +75,7 @@ export default function CreateGroup({ onClose }: { onClose: () => void }) {
         
         <CardContent className="space-y-6 pt-2">
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Nome do Grupo</Label>
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Nome do Grupo <span className="text-destructive">*</span></Label>
             <Input 
               placeholder="Ex: Prédio 42, Família Silva..." 
               value={name} 
@@ -86,7 +85,7 @@ export default function CreateGroup({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Tipo de Grupo</Label>
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Tipo de Grupo <span className="text-destructive">*</span></Label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: 'Vizinhos', icon: Shield },

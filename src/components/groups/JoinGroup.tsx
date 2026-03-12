@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, LogIn, Hash } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, increment, getDoc, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 
@@ -59,7 +58,6 @@ export default function JoinGroup({ onClose }: { onClose: () => void }) {
         groupsJoined: increment(1)
       });
 
-      // REGRA: Criar grupo que atinge 5 membros dá 25 pontos ao admin
       const updatedGroupSnap = await getDoc(doc(db, "groups", groupDoc.id));
       const updatedGroupData = updatedGroupSnap.data();
       if (updatedGroupData && updatedGroupData.memberIds.length === 5) {
@@ -106,7 +104,7 @@ export default function JoinGroup({ onClose }: { onClose: () => void }) {
         
         <CardContent className="space-y-6 pt-2">
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Código de Convite</Label>
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Código de Convite <span className="text-destructive">*</span></Label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 

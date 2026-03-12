@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -672,7 +671,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                   </h3>
                   
                   <div className="flex flex-col gap-6">
-                    {/* Banner Edit Section */}
                     <div className="space-y-2">
                       <Label className="text-xs font-black uppercase text-muted-foreground">Banner do Perfil</Label>
                       <div 
@@ -700,7 +698,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                       />
                     </div>
 
-                    {/* Photo Edit Section */}
                     <div className="flex flex-col items-center gap-3 pt-2">
                       <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                         <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-md">
@@ -730,7 +727,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                   
                   <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
-                      <UserIcon className="w-3 h-3" /> Nome Completo
+                      <UserIcon className="w-3 h-3" /> Nome Completo <span className="text-destructive">*</span>
                     </Label>
                     <input 
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
@@ -763,7 +760,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase text-muted-foreground">Distrito</Label>
+                      <Label className="text-xs font-black uppercase text-muted-foreground">Distrito <span className="text-destructive">*</span></Label>
                       <select 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                         value={editData.district} 
@@ -773,7 +770,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase text-muted-foreground">Zona/Bairro</Label>
+                      <Label className="text-xs font-black uppercase text-muted-foreground">Zona/Bairro <span className="text-destructive">*</span></Label>
                       <input 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                         value={editData.zone} 
@@ -784,7 +781,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
                   <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
-                      <Phone className="w-3 h-3" /> Telemóvel (+351)
+                      <Phone className="w-3 h-3" /> Telemóvel (+351) <span className="text-destructive">*</span>
                     </Label>
                     <input 
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
@@ -818,7 +815,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                           </select>
                         </div>
                         <div className="flex-[2] space-y-2">
-                          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Link / URL</Label>
+                          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Link / URL <span className="text-destructive">*</span></Label>
                           <Input 
                             className="h-9 text-xs" 
                             placeholder="ex: instagram.com/teuuser" 

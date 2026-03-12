@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -46,7 +45,6 @@ export default function AuthFlow() {
   const [error, setError] = React.useState('');
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
   
-  // Estados para visibilidade da palavra-passe
   const [showLoginPassword, setShowLoginPassword] = React.useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
 
@@ -218,7 +216,7 @@ export default function AuthFlow() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-      <div className="w-full max-w-sm space-y-8">
+      <div className="w-full max-sm space-y-8">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-24 h-24 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-black/5 animate-in zoom-in duration-500">
             <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
@@ -243,11 +241,11 @@ export default function AuthFlow() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-destructive">*</span></Label>
                 <Input type="email" placeholder="teu@email.pt" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label>Palavra-passe</Label>
+                <Label>Palavra-passe <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Input 
                     type={showLoginPassword ? "text" : "password"} 
@@ -289,11 +287,11 @@ export default function AuthFlow() {
                 <CardHeader><CardTitle>Passo 1: Credenciais</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Email</Label>
+                    <Label>Email <span className="text-destructive">*</span></Label>
                     <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="exemplo@mail.pt" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Palavra-passe</Label>
+                    <Label>Palavra-passe <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Input 
                         type={showRegisterPassword ? "text" : "password"} 
@@ -328,7 +326,7 @@ export default function AuthFlow() {
                 <CardHeader><CardTitle>Passo 2: Identidade</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Nome Completo</Label>
+                    <Label>Nome Completo <span className="text-destructive">*</span></Label>
                     <Input value={formData.name} placeholder="O teu nome" onChange={e => {
                       const n = e.target.value;
                       const u = '@' + n.toLowerCase().replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -336,7 +334,7 @@ export default function AuthFlow() {
                     }} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Nome de Utilizador (Username)</Label>
+                    <Label>Nome de Utilizador (Username) <span className="text-destructive">*</span></Label>
                     <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
                   </div>
                   <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
@@ -351,7 +349,7 @@ export default function AuthFlow() {
                 <CardHeader><CardTitle>Passo 3: Nascimento</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Data (DD/MM/AAAA)</Label>
+                    <Label>Data (DD/MM/AAAA) <span className="text-destructive">*</span></Label>
                     <Input value={formData.dataNasc} placeholder="Ex: 15/05/1995" onChange={e => maskDate(e.target.value)} />
                     <p className="text-[10px] text-muted-foreground font-medium">Deves ter mais de 18 anos para participar.</p>
                   </div>
@@ -365,14 +363,14 @@ export default function AuthFlow() {
                 <CardHeader><CardTitle>Passo 4: Localização</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Distrito</Label>
+                    <Label>Distrito <span className="text-destructive">*</span></Label>
                     <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})}>
                       <option value="">Selecionar Distrito</option>
                       {DISTRITOS_PORTUGAL.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Zona / Bairro</Label>
+                    <Label>Zona / Bairro <span className="text-destructive">*</span></Label>
                     <Input value={formData.zona} placeholder="Ex: Baixa, Campanhã, etc." onChange={e => setFormData({...formData, zona: e.target.value})} />
                   </div>
                   <Button variant="outline" className="w-full text-xs h-9 rounded-xl" onClick={useGPS}>
@@ -391,7 +389,7 @@ export default function AuthFlow() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Telemóvel (+351)</Label>
+                    <Label>Telemóvel (+351) <span className="text-destructive">*</span></Label>
                     <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
                   </div>
                   <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
