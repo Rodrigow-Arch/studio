@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -17,12 +18,13 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
   const db = useFirestore();
   const [activeChat, setActiveChat] = React.useState<any | null>(null);
 
-  // Busca todos os posts onde o usuário está envolvido
+  // Filter only active chats ('em curso'). 
+  // Once 'resolvido', the chat disappears from the list immediately as requested.
   const chatsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
       collection(db, 'posts'),
-      where('status', 'in', ['em curso', 'resolvido'])
+      where('status', '==', 'em curso')
     );
   }, [db, user]);
 
@@ -109,7 +111,7 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
                 </div>
 
                 <div className="text-right flex flex-col items-end gap-1">
-                  <Badge variant="outline" className={`text-[9px] uppercase ${post.status === 'resolvido' ? 'bg-secondary' : 'border-primary/30 text-primary'}`}>
+                  <Badge variant="outline" className={`text-[9px] uppercase border-primary/30 text-primary`}>
                     {post.status}
                   </Badge>
                 </div>

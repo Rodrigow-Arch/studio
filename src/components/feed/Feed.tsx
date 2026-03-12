@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -28,8 +29,22 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
 
   const filteredPosts = React.useMemo(() => {
     if (!posts) return [];
-    if (filterType === 'Tudo') return posts;
-    return posts.filter(p => p.type === filterType);
+    
+    const now = new Date();
+    
+    // Filter logic: 
+    // 1. Filter by category
+    // 2. Hide resolved posts that have already expired (after 24h)
+    return posts.filter(p => {
+      const matchesType = filterType === 'Tudo' || p.type === filterType;
+      
+      if (p.status === 'resolvido' && p.expiresAt) {
+        const expiresAt = new Date(p.expiresAt);
+        if (now > expiresAt) return false;
+      }
+      
+      return matchesType;
+    });
   }, [posts, filterType]);
 
   if (isLoading) {

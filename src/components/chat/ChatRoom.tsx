@@ -121,18 +121,21 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   };
 
   const finalizeResolution = async () => {
-    if (!user || !post.helperId || isResolving) {
-      console.warn("Missing data for resolution", { user: !!user, helperId: post.helperId, isResolving });
-      return;
-    }
+    if (!user || !post.helperId || isResolving) return;
     setIsResolving(true);
     
     try {
       const batch = writeBatch(db);
       
-      // 1. Mark post as resolved
+      // 1. Mark post as resolved and schedule deletion for 1 day later
       const postRef = doc(db, 'posts', post.id);
-      batch.update(postRef, { status: 'resolvido' });
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      batch.update(postRef, { 
+        status: 'resolvido',
+        expiresAt: expiresAt.toISOString()
+      });
 
       // 2. Create the rating
       const ratingRef = doc(collection(db, 'ratings'));
@@ -165,7 +168,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         });
       }
 
-      // 4. Clean up chat (messages and typing)
+      // 4. Delete all messages and typing indicators (full cleanup)
       const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
       messagesSnap.forEach(d => batch.delete(d.ref));
       
@@ -216,6 +219,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const isAuthor = post.authorId === user?.uid;
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
   const otherId = isAuthor ? post.helperId : post.authorId;
+
+  const handleStarClick = (value: number) => {
+    setRating(value);
+  };
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
@@ -304,22 +311,23 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           <DialogHeader>
             <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
             <DialogDescription>
-              A tua avaliação ajuda a manter a confiança na comunidade.
+              Podes avaliar com meias estrelas. A tua avaliação ajuda a manter a confiança na comunidade.
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex flex-col items-center py-6 gap-6">
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
+            <div className="flex gap-1">
+              {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((val) => (
                 <button 
-                  key={star} 
+                  key={val} 
                   type="button"
-                  onClick={() => setRating(star)}
-                  className="transition-transform active:scale-90"
+                  onClick={() => handleStarClick(val)}
+                  className={`transition-all ${rating === val ? 'scale-125' : 'hover:scale-110'}`}
                 >
                   <Star 
-                    className={`w-10 h-10 ${star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} 
+                    className={`w-6 h-6 ${val <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground opacity-30'}`} 
                   />
+                  <span className="text-[8px] block mt-1">{val}</span>
                 </button>
               ))}
             </div>
