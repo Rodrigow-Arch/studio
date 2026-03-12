@@ -103,8 +103,10 @@ export default function AuthFlow() {
         latitude: formData.lat,
         longitude: formData.lng,
         phoneNumber: formData.telefone,
-        points: 0, // Garantido: Começa com 0 pontos
+        isPhoneVerified: true, // Mocked for prototype
+        points: 0, 
         helpsGiven: 0,
+        reportCount: 0,
         sharesMade: 0,
         averageRating: 0,
         totalRatings: 0,

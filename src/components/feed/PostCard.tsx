@@ -5,9 +5,9 @@ import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award } from "lucide-react";
+import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award, Flag, Lock, ShieldCheck } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } 
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
+import ReportModal from '../security/ReportModal';
+import SOSRequirementModal from '../security/SOSRequirementModal';
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
@@ -24,6 +26,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [showComments, setShowComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
+  const [isSOSModalOpen, setIsSOSModalOpen] = React.useState(false);
 
   const currentUserDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -89,6 +93,23 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   const handleApplyToHelp = async () => {
     if (!user || !currentUserProfile || isApplying) return;
+
+    // SOS Verification Logic
+    if (post.type === 'SOS') {
+      const accountAge = differenceInDays(new Date(), new Date(currentUserProfile.joinedTimestamp));
+      const hasAccess = 
+        accountAge >= 30 && 
+        currentUserProfile.points >= 50 && 
+        currentUserProfile.helpsGiven >= 2 && 
+        (currentUserProfile.totalRatings >= 3 ? currentUserProfile.averageRating >= 4.0 : true) &&
+        (currentUserProfile.reportCount || 0) === 0;
+
+      if (!hasAccess) {
+        setIsSOSModalOpen(true);
+        return;
+      }
+    }
+
     setIsApplying(true);
 
     try {
@@ -141,9 +162,21 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   const trustLevel = getTrustLevel(authorProfile?.points || 0);
 
+  // SOS Access UI Helper
+  const getSOSAccessStatus = () => {
+    if (!currentUserProfile || post.type !== 'SOS') return null;
+    const accountAge = differenceInDays(new Date(), new Date(currentUserProfile.joinedTimestamp));
+    const isVerified = accountAge >= 30 && currentUserProfile.points >= 50 && currentUserProfile.helpsGiven >= 2 && (currentUserProfile.reportCount || 0) === 0;
+    return isVerified ? (
+      <ShieldCheck className="w-4 h-4 text-primary" title="Membro SOS Verificado" />
+    ) : (
+      <Lock className="w-4 h-4 text-muted-foreground" title="SOS Bloqueado para ti" />
+    );
+  };
+
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
-      <CardHeader className="p-4 flex flex-row items-center gap-3">
+      <CardHeader className="p-4 flex flex-row items-center justify-between">
         <div 
           className="flex flex-row items-center gap-3 cursor-pointer group"
           onClick={() => onProfileClick(post.authorId)}
@@ -165,6 +198,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal transition-all ${typeColors[post.type] || ''}`}>
                 {post.type}
               </Badge>
+              {getSOSAccessStatus()}
             </div>
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {post.zone}, {distance}km</span>
@@ -172,6 +206,14 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
             </div>
           </div>
         </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-muted-foreground/50 hover:text-destructive"
+          onClick={() => setIsReportOpen(true)}
+        >
+          <Flag className="w-4 h-4" />
+        </Button>
       </CardHeader>
       
       <CardContent className="px-4 py-2 space-y-3">
@@ -214,11 +256,14 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
             <Button 
               size="sm" 
               variant="default" 
-              className="h-8 px-4 text-[11px] font-bold rounded-full bg-accent hover:bg-accent/90 shadow-sm active:scale-90 transition-transform"
+              className={`h-8 px-4 text-[11px] font-bold rounded-full shadow-sm active:scale-90 transition-transform ${
+                post.type === 'SOS' ? 'bg-destructive hover:bg-destructive/90' : 'bg-accent hover:bg-accent/90'
+              }`}
               onClick={handleApplyToHelp}
               disabled={isApplying}
             >
-              <HandHeart className="w-4 h-4 mr-1.5" /> {isApplying ? "A enviar..." : "Quero Ajudar"}
+              {post.type === 'SOS' ? <ShieldCheck className="w-4 h-4 mr-1.5" /> : <HandHeart className="w-4 h-4 mr-1.5" />}
+              {isApplying ? "A enviar..." : (post.type === 'SOS' ? "Responder SOS" : "Quero Ajudar")}
             </Button>
           )}
         </div>
@@ -246,6 +291,21 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           </div>
         )}
       </CardFooter>
+
+      <ReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+        reportedUserId={post.authorId}
+        postId={post.id}
+      />
+
+      {currentUserProfile && (
+        <SOSRequirementModal 
+          isOpen={isSOSModalOpen}
+          onClose={() => setIsSOSModalOpen(false)}
+          userProfile={currentUserProfile}
+        />
+      )}
     </Card>
   );
 }

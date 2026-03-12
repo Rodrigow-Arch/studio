@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star, AlertTriangle } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
+import EmergencyModal from '../security/EmergencyModal';
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -20,6 +21,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const { toast } = useToast();
   const [text, setText] = React.useState('');
   const [isRatingOpen, setIsRatingOpen] = React.useState(false);
+  const [isEmergencyOpen, setIsEmergencyOpen] = React.useState(false);
   const [rating, setRating] = React.useState(5);
   const [ratingComment, setRatingComment] = React.useState('');
   const [isResolving, setIsResolving] = React.useState(false);
@@ -251,16 +253,26 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
             </div>
           </div>
         </div>
-        {isAuthor && post.status !== 'resolvido' && (
+        <div className="flex items-center gap-2">
           <Button 
+            variant="ghost" 
             size="sm" 
-            variant="default" 
-            className="h-8 text-[10px] bg-primary text-white font-bold" 
-            onClick={() => setIsRatingOpen(true)}
+            className="h-8 text-[9px] text-destructive hover:bg-destructive/10 font-black border border-destructive/20 rounded-full"
+            onClick={() => setIsEmergencyOpen(true)}
           >
-            <CheckCircle2 className="w-3 h-3 mr-1" /> Resolvido
+            🆘 Emergência
           </Button>
-        )}
+          {isAuthor && post.status !== 'resolvido' && (
+            <Button 
+              size="sm" 
+              variant="default" 
+              className="h-8 text-[10px] bg-primary text-white font-bold rounded-full" 
+              onClick={() => setIsRatingOpen(true)}
+            >
+              <CheckCircle2 className="w-3 h-3 mr-1" /> Resolvido
+            </Button>
+          )}
+        </div>
       </header>
 
       <div className="px-4 py-2 bg-secondary/20 border-b flex justify-between items-center">
@@ -312,6 +324,8 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           </Button>
         </div>
       </div>
+
+      <EmergencyModal isOpen={isEmergencyOpen} onClose={() => setIsEmergencyOpen(false)} />
 
       <Dialog open={isRatingOpen} onOpenChange={setIsRatingOpen}>
         <DialogContent className="max-w-[400px] rounded-3xl z-[100]" onPointerDownOutside={(e) => e.preventDefault()}>

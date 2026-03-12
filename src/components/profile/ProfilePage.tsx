@@ -9,17 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, ShieldCheck } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { DISTRITOS_PORTUGAL } from '@/lib/geo';
+import { DISTRITOS_PORTUGAL, calculateDistance } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
+import ReportModal from '../security/ReportModal';
+import { differenceInDays } from 'date-fns';
 
 interface ProfilePageProps {
   userId?: string;
@@ -36,6 +38,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const [postCount, setPostCount] = React.useState(0);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const targetUid = userId || currentUser?.uid;
@@ -169,6 +172,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   };
 
   const trustLevel = getTrustLevel(userProfile.points || 0);
+  
+  // SOS Verification Badge
+  const accountAge = differenceInDays(new Date(), new Date(userProfile.joinedTimestamp));
+  const isSOSVerified = accountAge >= 30 && userProfile.points >= 50 && userProfile.helpsGiven >= 2 && (userProfile.reportCount || 0) === 0;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
@@ -182,6 +189,16 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
             )}
          </div>
          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            {!isOwnProfile && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all"
+                onClick={() => setIsReportOpen(true)}
+              >
+                <Flag className="w-5 h-5" />
+              </Button>
+            )}
             {isOwnProfile && (
               <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all" onClick={() => setShowSettings(true)}>
                 <Save className="w-5 h-5" />
@@ -206,11 +223,18 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
               )}
             </div>
             <p className="text-muted-foreground text-sm font-medium">{userProfile.username}</p>
-            {trustLevel && (
-              <div className={`mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full ${trustLevel.bg} ${trustLevel.color} text-[10px] font-black uppercase tracking-wider border border-current/20`}>
-                <Award className="w-3 h-3" /> {trustLevel.label}
-              </div>
-            )}
+            <div className="flex items-center justify-center gap-2 mt-2">
+              {trustLevel && (
+                <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${trustLevel.bg} ${trustLevel.color} text-[10px] font-black uppercase tracking-wider border border-current/20`}>
+                  <Award className="w-3 h-3" /> {trustLevel.label}
+                </div>
+              )}
+              {isSOSVerified && (
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider border border-primary/20">
+                  <ShieldCheck className="w-3 h-3" /> SOS Verificado 🛡️
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm">
             <MapPin className="w-3 h-3 text-primary" /> {userProfile.zone}, {userProfile.district}
@@ -258,6 +282,12 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           </Button>
         )}
       </div>
+
+      <ReportModal 
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        reportedUserId={targetUid}
+      />
 
       {showSettings && (
         <div className="fixed inset-0 z-[110] bg-white animate-in slide-in-from-right duration-300 flex flex-col">

@@ -3,13 +3,14 @@
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck, MessageCircle, Award, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck, MessageCircle, Award, Star, ShieldAlert } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { getTrustLevel } from '@/lib/trust-levels';
+import SafetyWarningModal from '../security/SafetyWarningModal';
 
 interface NotificationsPageProps {
   onClose: () => void;
@@ -18,9 +19,10 @@ interface NotificationsPageProps {
 }
 
 export default function NotificationsPage({ onClose, onProfileClick, onAction }: NotificationsPageProps) {
-  const { user } = user ? useUser() : { user: null };
+  const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const [safetyTarget, setSafetyTarget] = React.useState<any | null>(null);
 
   const notificationsQuery = useMemoFirebase(() => {
     return user ? query(collection(db, 'users', user.uid, 'notifications'), orderBy('timestamp', 'desc')) : null;
@@ -30,11 +32,6 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
 
   const notifications = React.useMemo(() => {
     if (!rawNotifications) return [];
-    
-    // Para candidaturas, queremos ordená-las por pontos se houver múltiplas para o mesmo post
-    // Mas as notificações no geral mantêm ordem cronológica.
-    // No entanto, se o utilizador clicar numa notificação de candidatura, podemos mostrar
-    // a lista de candidatos ordenados no futuro. Por agora, marcamos as individuais.
     return rawNotifications;
   }, [rawNotifications]);
 
@@ -47,11 +44,12 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
       case 'Evento': return <Calendar className="text-purple-500" />;
       case 'chat_message': return <MessageCircle className="text-primary" />;
       case 'badge': return <Award className="text-yellow-500" />;
+      case 'accepted': return <ShieldAlert className="text-primary" />;
       default: return <CheckCircle2 className="text-primary" />;
     }
   };
 
-  const handleAccept = async (notif: any) => {
+  const finalizeAcceptance = async (notif: any) => {
     if (!user) return;
     try {
       await updateDoc(doc(db, 'posts', notif.postId), {
@@ -82,6 +80,10 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao aceitar candidatura" });
     }
+  };
+
+  const handleAcceptClick = (notif: any) => {
+    setSafetyTarget(notif);
   };
 
   const handleReject = async (notif: any) => {
@@ -172,7 +174,7 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90 active:scale-95 transition-transform" onClick={() => handleAccept(notif)}>
+                      <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90 active:scale-95 transition-transform" onClick={() => handleAcceptClick(notif)}>
                         <UserCheck className="w-3 h-3 mr-1" /> Candidatá-lo/a
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] text-destructive border-destructive/20 hover:bg-destructive/5 active:scale-95 transition-transform" onClick={() => handleReject(notif)}>
@@ -186,6 +188,15 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
           })
         )}
       </div>
+
+      <SafetyWarningModal 
+        isOpen={!!safetyTarget}
+        onConfirm={() => {
+          finalizeAcceptance(safetyTarget);
+          setSafetyTarget(null);
+        }}
+        onCancel={() => setSafetyTarget(null)}
+      />
     </div>
   );
 }
