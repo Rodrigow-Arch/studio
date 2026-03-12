@@ -68,21 +68,6 @@ export default function AuthFlow() {
         if (!formData.email.includes('@')) throw new Error('Email inválido');
         if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
         if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
-        
-        const emailLower = formData.email.trim().toLowerCase();
-        try {
-          const qEmail = query(collection(db, "users"), where("email", "==", emailLower), limit(1));
-          const snapEmail = await getDocs(qEmail);
-          if (!snapEmail.empty) {
-            throw new Error('Este email já está em uso. Tenta fazer login.');
-          }
-        } catch (e: any) {
-          if (e.message.includes('permission')) {
-             console.warn("Permissão de verificação pendente, continuando...");
-          } else {
-             throw e;
-          }
-        }
       }
       
       if (step === 2) {
@@ -91,17 +76,19 @@ export default function AuthFlow() {
         
         const cleanUsername = formData.username.toLowerCase().trim();
         const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
+        
         try {
+          // Verificação de @username duplicado
           const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
           const snap = await getDocs(q);
           if (!snap.empty) {
-            throw new Error('Este @username já está em uso. Tenta outro!');
+            throw new Error(`O utilizador ${finalUsername} já existe. Tenta outro!`);
           }
         } catch (e: any) {
-          if (e.message.includes('permission')) {
-             console.warn("Permissão de verificação pendente...");
+          if (e.message.includes('permission') || e.code === 'permission-denied') {
+            console.warn("Segurança: Verificação de username ignorada devido a permissões.");
           } else {
-             throw e;
+            throw e;
           }
         }
       }
@@ -197,7 +184,7 @@ export default function AuthFlow() {
       });
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('Este email já está associado a outra conta. Tenta fazer login.');
+        setError('Este email já está em uso. Tenta fazer login.');
       } else {
         setError(err.message || 'Ocorreu um erro ao criar a conta.');
       }
