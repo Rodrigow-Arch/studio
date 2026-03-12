@@ -47,7 +47,6 @@ export default function Home() {
 
   const handleProfileClick = (uid: string) => {
     setViewingUserId(uid);
-    setShowNotifications(false);
   };
 
   const handleNotificationAction = (type: string, data?: any) => {
@@ -61,15 +60,6 @@ export default function Home() {
   };
 
   const renderContent = () => {
-    if (viewingUserId) {
-      return (
-        <ProfilePage 
-          userId={viewingUserId} 
-          onBack={() => setViewingUserId(null)} 
-        />
-      );
-    }
-
     if (showNotifications) {
       return (
         <NotificationsPage 
@@ -96,7 +86,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {!viewingUserId && <Header onNotificationClick={() => setShowNotifications(true)} />}
+      {!showNotifications && <Header onNotificationClick={() => setShowNotifications(true)} />}
       
       <div className="flex-1 overflow-y-auto pb-24">
         {renderContent()}
@@ -106,12 +96,20 @@ export default function Home() {
         <CreatePost onClose={() => setActiveTab('feed')} />
       )}
 
-      {!viewingUserId && (
-        <BottomNav activeTab={activeTab} onTabChange={(tab) => {
-          setShowNotifications(false);
-          setActiveTab(tab);
-          setViewingUserId(null);
-        }} />
+      <BottomNav activeTab={activeTab} onTabChange={(tab) => {
+        setShowNotifications(false);
+        setActiveTab(tab);
+        setViewingUserId(null);
+      }} />
+
+      {/* Overlay de Perfil: Permite ver o perfil sem desmontar o fundo (ex: lista de membros do grupo) */}
+      {viewingUserId && (
+        <div className="fixed inset-0 z-[100] bg-background overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+          <ProfilePage 
+            userId={viewingUserId} 
+            onBack={() => setViewingUserId(null)} 
+          />
+        </div>
       )}
     </div>
   );
