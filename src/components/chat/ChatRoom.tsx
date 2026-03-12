@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2, Star } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, Star, Trash2, XCircle } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc, deleteDoc } from "firebase/firestore";
 import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
@@ -15,6 +15,17 @@ import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import EmergencyModal from '../security/EmergencyModal';
 import { filterProfanity, isUserOnline } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -127,6 +138,52 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao enviar mensagem" });
+    }
+  };
+
+  const handleCancelHelp = async () => {
+    if (!user || isResolving) return;
+    setIsResolving(true);
+
+    try {
+      const batch = writeBatch(db);
+      const postRef = doc(db, 'posts', post.id);
+
+      // 1. Resetar o estado do post para 'aberto' para voltar ao feed
+      batch.update(postRef, {
+        status: 'aberto',
+        helperId: null,
+        helperUsername: null
+      });
+
+      // 2. Apagar mensagens do chat
+      const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
+      messagesSnap.forEach(d => batch.delete(d.ref));
+
+      // 3. Limpar status de escrita
+      const typingSnap = await getDocs(collection(db, 'chats', chatId, 'typing'));
+      typingSnap.forEach(d => batch.delete(d.ref));
+
+      // 4. Notificar o outro utilizador
+      const recipientId = isAuthor ? post.helperId : post.authorId;
+      if (recipientId) {
+        await addDoc(collection(db, 'users', recipientId, 'notifications'), {
+          userId: recipientId,
+          type: 'System',
+          message: `A ajuda para o post "${post.text.substring(0, 20)}..." foi cancelada.`,
+          isRead: false,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      await batch.commit();
+      toast({ title: "Ajuda cancelada", description: "O post voltou a estar disponível na rede pública." });
+      onBack();
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Erro ao cancelar ajuda" });
+    } finally {
+      setIsResolving(false);
     }
   };
 
@@ -310,15 +367,47 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           >
             🆘 SOS
           </Button>
+
           {isAuthor && post.status !== 'resolvido' && (
-            <Button 
-              size="sm" 
-              variant="default" 
-              className="h-7 px-2 text-[9px] bg-primary text-white font-bold rounded-full shadow-sm" 
-              onClick={() => setIsRatingOpen(true)}
-            >
-              <CheckCircle2 className="w-2.5 h-2.5 mr-1" /> Resolvido
-            </Button>
+            <div className="flex items-center gap-1">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 px-1.5 text-[9px] text-muted-foreground hover:bg-primary hover:text-white transition-all font-black rounded-full"
+                  >
+                    <XCircle className="w-2.5 h-2.5 mr-1" /> Cancelar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-[320px] rounded-3xl z-[100]">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancelar Ajuda?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-xs">
+                      O chat será eliminado e o post voltará a estar visível para que outros vizinhos possam ajudar.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-row gap-2">
+                    <AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel>
+                    <AlertDialogAction 
+                      className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl"
+                      onClick={handleCancelHelp}
+                    >
+                      Sim, Cancelar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Button 
+                size="sm" 
+                variant="default" 
+                className="h-7 px-2 text-[9px] bg-primary text-white font-bold rounded-full shadow-sm" 
+                onClick={() => setIsRatingOpen(true)}
+              >
+                <CheckCircle2 className="w-2.5 h-2.5 mr-1" /> Resolvido
+              </Button>
+            </div>
           )}
         </div>
       </header>
@@ -382,9 +471,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         <DialogContent className="max-w-[400px] rounded-3xl z-[100]" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
-            <DialogDescription>
-              A tua avaliação ajuda a manter a confiança na comunidade.
-            </DialogDescription>
+            <DialogTitle className="text-xs font-normal text-muted-foreground mt-1">Ao concluir, o post será removido definitivamente da rede.</DialogTitle>
           </DialogHeader>
           
           <div className="flex flex-col items-center py-6 gap-6">
