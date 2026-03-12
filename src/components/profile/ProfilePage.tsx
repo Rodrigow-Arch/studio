@@ -15,7 +15,7 @@ import {
   ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
   Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
   Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon,
-  Settings, Trash, AlertTriangle
+  Settings, Trash, AlertTriangle, FileText
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -161,18 +161,14 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
       const batch = writeBatch(db);
       const uid = currentUser.uid;
 
-      // 1. Eliminar perfil
       batch.delete(doc(db, 'users', uid));
 
-      // 2. Procurar e eliminar posts
       const postsSnap = await getDocs(query(collection(db, 'posts'), where('authorId', '==', uid)));
       postsSnap.forEach(d => batch.delete(d.ref));
 
-      // 3. Procurar e eliminar comentários de perfil (recebidos)
       const muralSnap = await getDocs(collection(db, 'users', uid, 'profileComments'));
       muralSnap.forEach(d => batch.delete(d.ref));
 
-      // 4. Executar batch
       await batch.commit();
 
       toast({
@@ -180,7 +176,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         description: "Todos os teus dados foram removidos conforme o RGPD.",
       });
 
-      // 5. Logout e fim
       await signOut(auth);
     } catch (e: any) {
       console.error(e);
@@ -712,7 +707,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         </div>
       )}
 
-      {/* Modal de Eliminação RGPD */}
       <Dialog open={deleteConfirmStep > 0} onOpenChange={(open) => !open && setDeleteConfirmStep(0)}>
         <DialogContent className="max-w-[340px] rounded-3xl z-[300]">
           {deleteConfirmStep === 1 ? (
