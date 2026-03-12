@@ -1,3 +1,4 @@
+
 'use client';
     
 import { useState, useEffect } from 'react';
@@ -67,7 +68,7 @@ export function useDoc<T = any>(
             path: memoizedDocRef.path,
           });
           setError(contextualError);
-          errorEmitter.emit('permission-error', contextualError);
+          console.warn("Firestore Doc Permission Denied (Handled):", memoizedDocRef.path);
         } else {
           console.error("Firestore useDoc Error:", err);
           setError(err);

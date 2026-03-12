@@ -88,7 +88,8 @@ export function useCollection<T = any>(
             operation: 'list',
             path,
           });
-          errorEmitter.emit('permission-error', finalError as FirestorePermissionError);
+          // Avoid throwing global error that breaks the UI
+          console.warn("Firestore Permission Denied (Handled):", path);
         } else {
           console.error("Firestore Error:", err.code, err.message);
         }
