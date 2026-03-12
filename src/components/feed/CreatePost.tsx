@@ -8,15 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Sparkles, MapPin, Shield, Euro, Wallet } from "lucide-react";
+import { X, Sparkles, MapPin, Shield, Euro, AlertTriangle, Info, MessageSquare, MapPin as PinIcon, Zap } from "lucide-react";
 import { smartPostContentSuggestion } from "@/ai/flows/smart-post-content-suggestion-flow";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
+type SOSSubtype = 'SOS Informação' | 'SOS Presencial' | 'SOS Crítico';
 
 interface CreatePostProps {
   onClose: () => void;
@@ -35,16 +37,23 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   const { data: userProfile } = useDoc(userDocRef);
 
   const [tipo, setTipo] = React.useState<PostType>('Ajuda');
+  const [sosSubtype, setSosSubtype] = React.useState<SOSSubtype>('SOS Informação');
   const [texto, setTexto] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   
   const [recompensa, setRecompensa] = React.useState<string>('');
   const [metodoPagamento, setMetodoPagamento] = React.useState<string>('Dinheiro');
+  const [showSOSWarning, setShowSOSWarning] = React.useState(false);
 
   const handleCreate = async () => {
     if (!texto || !user || !userProfile) return;
     
+    if (tipo === 'SOS' && !showSOSWarning) {
+      setShowSOSWarning(true);
+      return;
+    }
+
     const valorNum = parseFloat(recompensa);
     if (!groupId && !isNaN(valorNum) && valorNum > 0 && !metodoPagamento) {
       toast({ variant: "destructive", title: "Erro", description: "Seleciona um método de pagamento." });
@@ -56,12 +65,13 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     try {
       const postData = {
         type: tipo,
+        sosSubtype: tipo === 'SOS' ? sosSubtype : null,
         text: texto,
         authorId: user.uid,
         authorUsername: userProfile.username,
         authorAvatarLetter: userProfile.avatarLetter,
         authorAvatarColor: userProfile.avatarColor,
-        authorPoints: userProfile.points || 0, // Denormalização para ordenação inteligente
+        authorPoints: userProfile.points || 0,
         district: userProfile.district,
         zone: userProfile.zone,
         latitude: userProfile.latitude || 0,
@@ -92,8 +102,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
       }
 
       await updateDoc(doc(db, "users", user.uid), updateData);
-      
-      // Verificar badges após postar
       await checkAndAwardBadges(db, user.uid);
 
       toast({
@@ -117,7 +125,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     setLoading(true);
     try {
       const res = await smartPostContentSuggestion({
-        postType: tipo,
+        postType: tipo === 'SOS' ? sosSubtype : tipo,
         userLocation: groupId ? "Tarefa de Grupo Privada" : `${userProfile.district}, ${userProfile.zone}`
       });
       setSuggestions(res.suggestions);
@@ -155,10 +163,41 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
               ))}
             </div>
 
+            {tipo === 'SOS' && (
+              <div className="p-3 bg-destructive/5 rounded-2xl border border-destructive/20 space-y-3 animate-in fade-in zoom-in-95">
+                <Label className="text-[10px] font-black uppercase text-destructive tracking-widest flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3" /> Tipo de SOS Urgente
+                </Label>
+                <RadioGroup value={sosSubtype} onValueChange={(val: SOSSubtype) => setSosSubtype(val)} className="flex flex-col gap-2">
+                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
+                    <RadioGroupItem value="SOS Informação" id="sos-info" />
+                    <Label htmlFor="sos-info" className="text-xs flex-1 cursor-pointer">
+                      <span className="font-bold">SOS Informação 💬</span>
+                      <p className="text-[9px] text-muted-foreground">Bronze 🥉 • Dúvidas e orientações</p>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
+                    <RadioGroupItem value="SOS Presencial" id="sos-pres" />
+                    <Label htmlFor="sos-pres" className="text-xs flex-1 cursor-pointer">
+                      <span className="font-bold">SOS Presencial 🚶</span>
+                      <p className="text-[9px] text-muted-foreground">Prata 🥈 • Ajuda física no local</p>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
+                    <RadioGroupItem value="SOS Crítico" id="sos-crit" />
+                    <Label htmlFor="sos-crit" className="text-xs flex-1 cursor-pointer">
+                      <span className="font-bold">SOS Crítico 🚨</span>
+                      <p className="text-[9px] text-muted-foreground">Ouro 🥇 • Emergência real imediata</p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar?</Label>
               <Textarea 
-                placeholder={groupId ? "Ex: Alguém tem uma cebola que possa dispensar?" : "Escreve aqui..."} 
+                placeholder={tipo === 'SOS' ? "Descreve a tua urgência com clareza..." : "Escreve aqui..."} 
                 value={texto} 
                 onChange={e => setTexto(e.target.value)}
                 className="min-h-[80px] text-sm rounded-xl border-2 focus:border-primary transition-all resize-none"
@@ -166,7 +205,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
               />
             </div>
 
-            {!groupId && (
+            {tipo !== 'SOS' && !groupId && (
               <div className="space-y-3 p-3 bg-secondary/10 rounded-2xl border border-dashed border-primary/20">
                 <div className="flex items-center justify-between">
                   <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
@@ -238,13 +277,42 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
             )}
 
             <div className="pt-2">
-              <Button className="w-full font-black h-12 rounded-2xl shadow-lg shadow-primary/20 text-sm uppercase tracking-wide" disabled={!texto || loading} onClick={handleCreate}>
-                {loading ? "A processar..." : (groupId ? "Criar Tarefa Privada" : "Publicar na Rede")}
+              <Button 
+                className={`w-full font-black h-12 rounded-2xl shadow-lg text-sm uppercase tracking-wide transition-all ${
+                  tipo === 'SOS' ? 'bg-destructive hover:bg-destructive/90 shadow-destructive/20' : 'bg-primary shadow-primary/20'
+                }`} 
+                disabled={!texto || loading} 
+                onClick={handleCreate}
+              >
+                {loading ? "A processar..." : (tipo === 'SOS' ? "Publicar SOS Crítico" : (groupId ? "Criar Tarefa Privada" : "Publicar na Rede"))}
               </Button>
             </div>
           </CardContent>
         </ScrollArea>
       </Card>
+
+      <Dialog open={showSOSWarning} onOpenChange={setShowSOSWarning}>
+        <DialogContent className="max-w-[340px] rounded-3xl z-[200]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Aviso de Segurança SOS
+            </DialogTitle>
+            <DialogDescription className="text-sm pt-2">
+              ⚠️ Ao publicar um SOS estás a pedir ajuda presencial ou urgente a membros da comunidade. 
+              <br/><br/>
+              Por segurança apenas membros verificados e experientes podem responder. Mesmo assim informa sempre um familiar ou amigo de confiança. O Portugal Unido não se responsabiliza por encontros presenciais.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2">
+            <Button className="w-full bg-destructive font-bold rounded-xl" onClick={handleCreate}>
+              Entendi, publicar SOS
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setShowSOSWarning(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

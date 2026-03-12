@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award, Flag, Lock, ShieldCheck } from "lucide-react";
+import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award, Flag, Lock, ShieldCheck, AlertTriangle, Zap, Info } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -57,10 +57,26 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   const typeColors: Record<string, string> = {
     'Ajuda': 'bg-blue-100 text-blue-700 border-blue-200',
-    'SOS': 'bg-red-100 text-red-700 border-red-200 animate-pulse',
+    'SOS': 'bg-red-100 text-red-700 border-red-200',
     'Partilha': 'bg-green-100 text-green-700 border-green-200',
     'Evento': 'bg-purple-100 text-purple-700 border-purple-200'
   };
+
+  const getSOSLevelConfig = () => {
+    if (post.type !== 'SOS') return null;
+    switch (post.sosSubtype) {
+      case 'SOS Crítico':
+        return { level: 'Ouro 🥇', minPoints: 1000, badgeClass: 'bg-red-500 text-white animate-pulse', icon: <Zap className="w-3 h-3" /> };
+      case 'SOS Presencial':
+        return { level: 'Prata 🥈', minPoints: 500, badgeClass: 'bg-orange-500 text-white', icon: <MapPin className="w-3 h-3" /> };
+      case 'SOS Informação':
+      default:
+        return { level: 'Bronze 🥉', minPoints: 100, badgeClass: 'bg-blue-500 text-white', icon: <Info className="w-3 h-3" /> };
+    }
+  };
+
+  const sosConfig = getSOSLevelConfig();
+  const hasAccess = currentUserProfile && sosConfig ? (currentUserProfile.points || 0) >= sosConfig.minPoints : true;
 
   const handleAddComment = async () => {
     if (!commentText || !user || !currentUserProfile) return;
@@ -83,7 +99,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       await updateDoc(doc(db, 'users', user.uid), {
         commentsMade: increment(1)
       });
-
       await checkAndAwardBadges(db, user.uid);
       setCommentText('');
     } catch (e) {
@@ -94,20 +109,9 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const handleApplyToHelp = async () => {
     if (!user || !currentUserProfile || isApplying) return;
 
-    // SOS Verification Logic
-    if (post.type === 'SOS') {
-      const accountAge = differenceInDays(new Date(), new Date(currentUserProfile.joinedTimestamp));
-      const hasAccess = 
-        accountAge >= 30 && 
-        currentUserProfile.points >= 50 && 
-        currentUserProfile.helpsGiven >= 2 && 
-        (currentUserProfile.totalRatings >= 3 ? currentUserProfile.averageRating >= 4.0 : true) &&
-        (currentUserProfile.reportCount || 0) === 0;
-
-      if (!hasAccess) {
-        setIsSOSModalOpen(true);
-        return;
-      }
+    if (!hasAccess) {
+      setIsSOSModalOpen(true);
+      return;
     }
 
     setIsApplying(true);
@@ -162,18 +166,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   const trustLevel = getTrustLevel(authorProfile?.points || 0);
 
-  // SOS Access UI Helper
-  const getSOSAccessStatus = () => {
-    if (!currentUserProfile || post.type !== 'SOS') return null;
-    const accountAge = differenceInDays(new Date(), new Date(currentUserProfile.joinedTimestamp));
-    const isVerified = accountAge >= 30 && currentUserProfile.points >= 50 && currentUserProfile.helpsGiven >= 2 && (currentUserProfile.reportCount || 0) === 0;
-    return isVerified ? (
-      <ShieldCheck className="w-4 h-4 text-primary" title="Membro SOS Verificado" />
-    ) : (
-      <Lock className="w-4 h-4 text-muted-foreground" title="SOS Bloqueado para ti" />
-    );
-  };
-
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
       <CardHeader className="p-4 flex flex-row items-center justify-between">
@@ -198,7 +190,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal transition-all ${typeColors[post.type] || ''}`}>
                 {post.type}
               </Badge>
-              {getSOSAccessStatus()}
             </div>
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {post.zone}, {distance}km</span>
@@ -217,6 +208,18 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       </CardHeader>
       
       <CardContent className="px-4 py-2 space-y-3">
+        {post.type === 'SOS' && sosConfig && (
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Badge className={`text-[9px] font-black h-5 uppercase tracking-wider gap-1 ${sosConfig.badgeClass}`}>
+              {sosConfig.icon} {post.sosSubtype}
+            </Badge>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+              {hasAccess ? <ShieldCheck className="w-3 h-3 text-primary" /> : <Lock className="w-3 h-3" />}
+              Requer mínimo {sosConfig.level}
+            </span>
+          </div>
+        )}
+
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.text}</p>
         
         {post.paymentAmount > 0 && (
@@ -257,13 +260,15 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               size="sm" 
               variant="default" 
               className={`h-8 px-4 text-[11px] font-bold rounded-full shadow-sm active:scale-90 transition-transform ${
-                post.type === 'SOS' ? 'bg-destructive hover:bg-destructive/90' : 'bg-accent hover:bg-accent/90'
+                !hasAccess ? 'bg-secondary text-muted-foreground cursor-not-allowed border' :
+                post.type === 'SOS' ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-accent hover:bg-accent/90 text-white'
               }`}
               onClick={handleApplyToHelp}
               disabled={isApplying}
             >
-              {post.type === 'SOS' ? <ShieldCheck className="w-4 h-4 mr-1.5" /> : <HandHeart className="w-4 h-4 mr-1.5" />}
-              {isApplying ? "A enviar..." : (post.type === 'SOS' ? "Responder SOS" : "Quero Ajudar")}
+              {!hasAccess ? <Lock className="w-4 h-4 mr-1.5" /> : 
+               post.type === 'SOS' ? <Zap className="w-4 h-4 mr-1.5" /> : <HandHeart className="w-4 h-4 mr-1.5" />}
+              {isApplying ? "A enviar..." : (!hasAccess ? "Bloqueado" : (post.type === 'SOS' ? "Responder SOS" : "Quero Ajudar"))}
             </Button>
           )}
         </div>
@@ -304,6 +309,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           isOpen={isSOSModalOpen}
           onClose={() => setIsSOSModalOpen(false)}
           userProfile={currentUserProfile}
+          requiredSubtype={post.sosSubtype}
         />
       )}
     </Card>

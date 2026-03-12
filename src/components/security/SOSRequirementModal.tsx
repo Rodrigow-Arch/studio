@@ -4,18 +4,41 @@
 import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, CheckCircle2, XCircle, ShieldAlert, Lock } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, ShieldAlert, Lock, Zap, MapPin, Info } from "lucide-react";
 import { differenceInDays } from "date-fns";
 
 interface SOSRequirementModalProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile: any;
+  requiredSubtype?: string;
 }
 
-export default function SOSRequirementModal({ isOpen, onClose, userProfile }: SOSRequirementModalProps) {
+export default function SOSRequirementModal({ isOpen, onClose, userProfile, requiredSubtype }: SOSRequirementModalProps) {
   const accountAge = differenceInDays(new Date(), new Date(userProfile.joinedTimestamp));
   
+  const getRequiredPoints = () => {
+    switch(requiredSubtype) {
+      case 'SOS Crítico': return 1000;
+      case 'SOS Presencial': return 500;
+      case 'SOS Informação': return 100;
+      default: return 50;
+    }
+  };
+
+  const getRequiredLevel = () => {
+    switch(requiredSubtype) {
+      case 'SOS Crítico': return 'Ouro 🥇';
+      case 'SOS Presencial': return 'Prata 🥈';
+      case 'SOS Informação': return 'Bronze 🥉';
+      default: return 'Verificado 🛡️';
+    }
+  };
+
+  const requiredPoints = getRequiredPoints();
+  const requiredLevel = getRequiredLevel();
+  const hasPoints = userProfile.points >= requiredPoints;
+
   const requirements = [
     { 
       label: "Conta com 30 dias", 
@@ -23,24 +46,19 @@ export default function SOSRequirementModal({ isOpen, onClose, userProfile }: SO
       current: `${accountAge} / 30 dias` 
     },
     { 
-      label: "3 avaliações com 4.0+", 
-      isMet: userProfile.totalRatings >= 3 && userProfile.averageRating >= 4.0, 
-      current: `${userProfile.totalRatings} avaliações (${userProfile.averageRating.toFixed(1)} ⭐)` 
-    },
-    { 
-      label: "50 pontos de gratidão", 
-      isMet: userProfile.points >= 50, 
-      current: `${userProfile.points} / 50 pts` 
-    },
-    { 
-      label: "2 ajudas concluídas", 
-      isMet: userProfile.helpsGiven >= 2, 
-      current: `${userProfile.helpsGiven} / 2 concluídas` 
+      label: `Selo ${requiredLevel}`, 
+      isMet: hasPoints, 
+      current: `${userProfile.points} / ${requiredPoints} pts` 
     },
     { 
       label: "Telefone verificado", 
       isMet: !!userProfile.isPhoneVerified, 
       current: userProfile.isPhoneVerified ? "Verificado ✅" : "Pendente ❌" 
+    },
+    { 
+      label: "Mínimo 2 ajudas concluídas", 
+      isMet: userProfile.helpsGiven >= 2, 
+      current: `${userProfile.helpsGiven} / 2 concluídas` 
     },
     { 
       label: "Perfil sem denúncias", 
@@ -61,14 +79,14 @@ export default function SOSRequirementModal({ isOpen, onClose, userProfile }: SO
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md border-2 border-primary/20">
             <ShieldCheck className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="font-headline text-2xl text-primary font-black">Acesso SOS Restrito</h2>
+          <h2 className="font-headline text-xl text-primary font-black">Acesso SOS Restrito</h2>
           <p className="text-xs text-muted-foreground mt-2 px-4 leading-relaxed">
-            Para responder a SOS precisas de ser um membro verificado e experiente. Protegemos quem precisa de ajuda urgente. 🛡️
+            Ainda não podes responder a este SOS. Este tipo de ajuda requer selo <span className="font-black text-foreground">{requiredLevel}</span> ou superior para garantir a segurança de quem precisa. Continua a ajudar a comunidade para subir de nível! 💪
           </p>
         </div>
 
         <div className="p-4 space-y-2 bg-white">
-          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-3 text-center">Teu Progresso Atual</p>
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-3 text-center">Teu Progresso para {requiredSubtype}</p>
           {requirements.map((req) => (
             <div key={req.label} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${req.isMet ? 'bg-primary/5 border-primary/10' : 'bg-secondary/20 border-transparent'}`}>
               <div className="flex items-center gap-3">
