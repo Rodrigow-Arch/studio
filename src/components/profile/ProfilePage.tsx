@@ -108,6 +108,18 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
   const handleSaveSettings = async () => {
     if (!currentUser) return;
+    
+    // Validação obrigatória dos links das redes sociais
+    const hasEmptyLinks = editData.socialLinks.some(link => !link.url.trim());
+    if (hasEmptyLinks) {
+      toast({
+        variant: "destructive",
+        title: "Link obrigatório",
+        description: "Por favor, insere um link para todas as redes sociais ou remove as vazias.",
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const userRef = doc(db, 'users', currentUser.uid);
@@ -588,6 +600,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                             className="h-9 text-xs" 
                             placeholder="ex: instagram.com/teuuser" 
                             value={link.url}
+                            required
                             onChange={(e) => updateSocialLink(idx, 'url', e.target.value)}
                           />
                         </div>
