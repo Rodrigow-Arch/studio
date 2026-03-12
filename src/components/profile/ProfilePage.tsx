@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Calendar, Lock } from "lucide-react";
 import RatingStats from './RatingStats';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
@@ -17,6 +17,8 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
 
 interface ProfilePageProps {
   userId?: string;
@@ -242,8 +244,11 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
            </header>
 
            <ScrollArea className="flex-1">
-             <div className="p-6 space-y-6 pb-24">
-                <div className="space-y-4">
+             <div className="p-6 space-y-8 pb-24">
+                {/* Editable Section */}
+                <div className="space-y-6">
+                  <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Informação Editável</h3>
+                  
                   <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
                       <UserIcon className="w-3 h-3" /> Nome Completo
@@ -311,12 +316,59 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                   </div>
                 </div>
 
-                <div className="pt-10 space-y-4">
-                  <div className="p-4 bg-secondary/20 rounded-2xl border border-dashed text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Privacidade</p>
-                    <p className="text-xs">O teu email e nome de utilizador não podem ser alterados para segurança da rede.</p>
+                {/* Read-Only Section */}
+                <div className="space-y-6 pt-4">
+                  <h3 className="text-xs font-black uppercase text-destructive tracking-widest border-b pb-2 flex items-center justify-between">
+                    Segurança e Privacidade <Lock className="w-3 h-3" />
+                  </h3>
+                  
+                  <div className="space-y-2 opacity-70">
+                    <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
+                      <Mail className="w-3 h-3" /> Email de Registo
+                    </Label>
+                    <div className="relative">
+                      <Input value={userProfile.email} disabled className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10" />
+                      <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    </div>
                   </div>
 
+                  <div className="space-y-2 opacity-70">
+                    <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
+                      <AtSign className="w-3 h-3" /> Nome de Utilizador
+                    </Label>
+                    <div className="relative">
+                      <Input value={userProfile.username} disabled className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10 font-medium" />
+                      <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 opacity-70">
+                    <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
+                      <Calendar className="w-3 h-3" /> Membro desde
+                    </Label>
+                    <div className="relative">
+                      <Input 
+                        value={userProfile.joinedTimestamp ? format(new Date(userProfile.joinedTimestamp), "PPP", { locale: pt }) : 'N/A'} 
+                        disabled 
+                        className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10" 
+                      />
+                      <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6">
+                  <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 text-center space-y-2">
+                    <p className="text-[10px] text-primary uppercase font-black tracking-widest flex items-center justify-center gap-1">
+                      <Lock className="w-3 h-3" /> Aviso de Segurança
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                      Por motivos de segurança e integridade da rede <strong>Portugal Unido</strong>, o teu email e nome de utilizador são permanentes. Para qualquer alteração crítica, contacta o suporte.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 pb-12">
                   <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 rounded-2xl h-12 font-bold" onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" /> Terminar Sessão
                   </Button>
