@@ -518,7 +518,10 @@ export default function AuthFlow() {
             <span>•</span>
             <a href="mailto:legal@portugalunido.pt" className="hover:text-primary transition-colors">Contacto</a>
           </div>
-          <p className="text-[9px] text-muted-foreground/50 font-medium">© 2025 Portugal Unido • Feito com 🤝 em Portugal</p>
+          <p className="text-[9px] text-muted-foreground/50 font-medium text-center">
+            © 2025 Portugal Unido • Feito com 🤝 em Portugal <br/>
+            Feito pela Equipa Faroltech
+          </p>
         </footer>
       </div>
 
