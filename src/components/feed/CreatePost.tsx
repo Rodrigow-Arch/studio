@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Sparkles, MapPin, Shield, Euro, AlertTriangle, Info, MessageSquare, MapPin as PinIcon, Zap } from "lucide-react";
+import { X, Sparkles, MapPin, Shield, Euro, AlertTriangle, Zap } from "lucide-react";
 import { smartPostContentSuggestion } from "@/ai/flows/smart-post-content-suggestion-flow";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
@@ -18,7 +18,6 @@ import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
-type SOSSubtype = 'SOS Informação' | 'SOS Presencial' | 'SOS Crítico';
 
 interface CreatePostProps {
   onClose: () => void;
@@ -37,7 +36,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   const { data: userProfile } = useDoc(userDocRef);
 
   const [tipo, setTipo] = React.useState<PostType>('Ajuda');
-  const [sosSubtype, setSosSubtype] = React.useState<SOSSubtype>('SOS Informação');
   const [texto, setTexto] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
@@ -65,7 +63,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     try {
       const postData = {
         type: tipo,
-        sosSubtype: tipo === 'SOS' ? sosSubtype : null,
         text: texto,
         authorId: user.uid,
         authorUsername: userProfile.username,
@@ -125,7 +122,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     setLoading(true);
     try {
       const res = await smartPostContentSuggestion({
-        postType: tipo === 'SOS' ? sosSubtype : tipo,
+        postType: tipo,
         userLocation: groupId ? "Tarefa de Grupo Privada" : `${userProfile.district}, ${userProfile.zone}`
       });
       setSuggestions(res.suggestions);
@@ -163,44 +160,13 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
               ))}
             </div>
 
-            {tipo === 'SOS' && (
-              <div className="p-3 bg-destructive/5 rounded-2xl border border-destructive/20 space-y-3 animate-in fade-in zoom-in-95">
-                <Label className="text-[10px] font-black uppercase text-destructive tracking-widest flex items-center gap-1.5">
-                  <AlertTriangle className="w-3 h-3" /> Tipo de SOS Urgente
-                </Label>
-                <RadioGroup value={sosSubtype} onValueChange={(val: SOSSubtype) => setSosSubtype(val)} className="flex flex-col gap-2">
-                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
-                    <RadioGroupItem value="SOS Informação" id="sos-info" />
-                    <Label htmlFor="sos-info" className="text-xs flex-1 cursor-pointer">
-                      <span className="font-bold">SOS Informação 💬</span>
-                      <p className="text-[9px] text-muted-foreground">Bronze 🥉 • Dúvidas e orientações</p>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
-                    <RadioGroupItem value="SOS Presencial" id="sos-pres" />
-                    <Label htmlFor="sos-pres" className="text-xs flex-1 cursor-pointer">
-                      <span className="font-bold">SOS Presencial 🚶</span>
-                      <p className="text-[9px] text-muted-foreground">Prata 🥈 • Ajuda física no local</p>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 bg-white/50 p-2 rounded-xl border">
-                    <RadioGroupItem value="SOS Crítico" id="sos-crit" />
-                    <Label htmlFor="sos-crit" className="text-xs flex-1 cursor-pointer">
-                      <span className="font-bold">SOS Crítico 🚨</span>
-                      <p className="text-[9px] text-muted-foreground">Ouro 🥇 • Emergência real imediata</p>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar?</Label>
               <Textarea 
                 placeholder={tipo === 'SOS' ? "Descreve a tua urgência com clareza..." : "Escreve aqui..."} 
                 value={texto} 
                 onChange={e => setTexto(e.target.value)}
-                className="min-h-[80px] text-sm rounded-xl border-2 focus:border-primary transition-all resize-none"
+                className="min-h-[120px] text-sm rounded-xl border-2 focus:border-primary transition-all resize-none"
                 disabled={loading}
               />
             </div>
@@ -284,7 +250,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
                 disabled={!texto || loading} 
                 onClick={handleCreate}
               >
-                {loading ? "A processar..." : (tipo === 'SOS' ? "Publicar SOS Crítico" : (groupId ? "Criar Tarefa Privada" : "Publicar na Rede"))}
+                {loading ? "A processar..." : (tipo === 'SOS' ? "Publicar SOS" : (groupId ? "Criar Tarefa Privada" : "Publicar na Rede"))}
               </Button>
             </div>
           </CardContent>

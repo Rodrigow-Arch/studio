@@ -62,21 +62,9 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     'Evento': 'bg-purple-100 text-purple-700 border-purple-200'
   };
 
-  const getSOSLevelConfig = () => {
-    if (post.type !== 'SOS') return null;
-    switch (post.sosSubtype) {
-      case 'SOS Crítico':
-        return { level: 'Ouro 🥇', minPoints: 1000, badgeClass: 'bg-red-500 text-white animate-pulse', icon: <Zap className="w-3 h-3" /> };
-      case 'SOS Presencial':
-        return { level: 'Prata 🥈', minPoints: 500, badgeClass: 'bg-orange-500 text-white', icon: <MapPin className="w-3 h-3" /> };
-      case 'SOS Informação':
-      default:
-        return { level: 'Bronze 🥉', minPoints: 100, badgeClass: 'bg-blue-500 text-white', icon: <Info className="w-3 h-3" /> };
-    }
-  };
-
-  const sosConfig = getSOSLevelConfig();
-  const hasAccess = currentUserProfile && sosConfig ? (currentUserProfile.points || 0) >= sosConfig.minPoints : true;
+  const hasAccess = post.type === 'SOS' && currentUserProfile 
+    ? (currentUserProfile.points || 0) >= 500 
+    : true;
 
   const handleAddComment = async () => {
     if (!commentText || !user || !currentUserProfile) return;
@@ -208,14 +196,14 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       </CardHeader>
       
       <CardContent className="px-4 py-2 space-y-3">
-        {post.type === 'SOS' && sosConfig && (
+        {post.type === 'SOS' && (
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Badge className={`text-[9px] font-black h-5 uppercase tracking-wider gap-1 ${sosConfig.badgeClass}`}>
-              {sosConfig.icon} {post.sosSubtype}
+            <Badge className={`text-[9px] font-black h-5 uppercase tracking-wider gap-1 ${hasAccess ? 'bg-primary text-white' : 'bg-destructive text-white animate-pulse'}`}>
+              <Zap className="w-3 h-3" /> SOS URGENTE
             </Badge>
             <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
               {hasAccess ? <ShieldCheck className="w-3 h-3 text-primary" /> : <Lock className="w-3 h-3" />}
-              Requer mínimo {sosConfig.level}
+              🛡️ Requer selo Prata ou superior para ajudar
             </span>
           </div>
         )}
@@ -309,7 +297,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           isOpen={isSOSModalOpen}
           onClose={() => setIsSOSModalOpen(false)}
           userProfile={currentUserProfile}
-          requiredSubtype={post.sosSubtype}
         />
       )}
     </Card>
