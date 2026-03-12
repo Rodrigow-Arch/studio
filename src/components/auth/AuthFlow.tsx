@@ -248,7 +248,7 @@ export default function AuthFlow() {
           <Card className="animate-in fade-in slide-in-from-bottom-4 shadow-xl rounded-3xl">
             <CardHeader>
               <CardTitle>Entrar</CardTitle>
-              <CardDescription>Bem-vindo de volta à tua comunidade.</CardDescription>
+              <CardTitle className="text-sm font-normal text-muted-foreground mt-1">Bem-vindo de volta à tua comunidade.</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -285,7 +285,7 @@ export default function AuthFlow() {
               <div className="pt-2">
                 <Button 
                   variant="outline" 
-                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-sm" 
+                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary/90 transition-all shadow-sm" 
                   onClick={() => setMode('register')}
                 >
                   <UserPlus className="w-4 h-4 mr-2" /> Não tens conta? Cria uma agora
@@ -417,7 +417,7 @@ export default function AuthFlow() {
               <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
                 <CardHeader>
                   <CardTitle>Passo 5: Contacto</CardTitle>
-                  <CardDescription>O teu número é essencial para verificações de segurança.</CardDescription>
+                  <CardDescription className="text-xs">O teu número é essencial para verificações de segurança.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -435,7 +435,7 @@ export default function AuthFlow() {
               <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
                 <CardHeader>
                   <CardTitle>Passo 6: Foto de Perfil</CardTitle>
-                  <CardDescription>Mostra à comunidade quem tu és. (Opcional)</CardDescription>
+                  <CardDescription className="text-xs">Mostra à comunidade quem tu és. (Opcional)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-6 flex flex-col items-center">
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -467,7 +467,7 @@ export default function AuthFlow() {
               <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl border-primary/20">
                 <CardHeader>
                   <CardTitle>Passo 7: Sobre Ti</CardTitle>
-                  <CardDescription>Uma breve descrição ajuda vizinhos a conhecerem-te melhor. (Opcional)</CardDescription>
+                  <CardDescription className="text-xs">Uma breve descrição ajuda vizinhos a conhecerem-te melhor. (Opcional)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -500,7 +500,7 @@ export default function AuthFlow() {
             <div className="pt-4 text-center">
               <Button 
                 variant="outline" 
-                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-sm" 
+                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary/90 transition-all shadow-sm" 
                 onClick={() => setMode('login')}
               >
                 <LogIn className="w-4 h-4 mr-2" /> Já tens uma conta? Faz login
