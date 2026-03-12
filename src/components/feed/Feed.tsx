@@ -8,7 +8,7 @@ import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { Plus, LayoutGrid, Globe } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 
 interface FeedProps {
   initialShowCreate?: boolean;
@@ -21,33 +21,36 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
   const [showCreate, setShowCreate] = React.useState(initialShowCreate);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
 
-  // Filtrar apenas posts públicos (onde groupId é nulo ou isPublic é true)
+  // Simplificamos a query para evitar necessidade de índices compostos manuais
   const postsQuery = useMemoFirebase(() => {
     return query(
       collection(db, 'posts'), 
-      where('groupId', '==', null), // Apenas posts fora de grupos
       orderBy('timestamp', 'desc')
     );
   }, [db]);
 
-  const { data: posts, isLoading } = useCollection(postsQuery);
+  const { data: allPosts, isLoading } = useCollection(postsQuery);
 
+  // Filtragem no cliente para garantir funcionamento sem índices complexos
   const filteredPosts = React.useMemo(() => {
-    if (!posts) return [];
+    if (!allPosts) return [];
     
     const now = new Date();
     
-    return posts.filter(p => {
+    return allPosts.filter(p => {
+      // Apenas posts fora de grupos (públicos) ou explicitamente marcados como públicos
+      const isPublic = !p.groupId || p.isPublic;
       const matchesType = filterType === 'Tudo' || p.type === filterType;
       
+      // Filtro de expiração para resolvidos
       if (p.status === 'resolvido' && p.expiresAt) {
         const expiresAt = new Date(p.expiresAt);
         if (now > expiresAt) return false;
       }
       
-      return matchesType;
+      return isPublic && matchesType;
     });
-  }, [posts, filterType]);
+  }, [allPosts, filterType]);
 
   if (isLoading) {
     return (

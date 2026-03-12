@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Plus, Users, Hash, Share2, Info, LayoutGrid, MessageSquare } from "lucide-react";
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
-import { doc, collection, query, where, orderBy } from "firebase/firestore";
+import { doc, collection, query, orderBy } from "firebase/firestore";
 import PostCard from '../feed/PostCard';
 import CreatePost from '../feed/CreatePost';
 import { useToast } from "@/hooks/use-toast";
@@ -27,15 +27,20 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
   const groupRef = useMemoFirebase(() => doc(db, 'groups', groupId), [db, groupId]);
   const { data: group, isLoading: groupLoading } = useDoc(groupRef);
 
+  // Simplificamos a query para evitar necessidade de índices compostos manuais
   const tasksQuery = useMemoFirebase(() => {
     return query(
       collection(db, 'posts'),
-      where('groupId', '==', groupId),
       orderBy('timestamp', 'desc')
     );
-  }, [db, groupId]);
+  }, [db]);
 
-  const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+  const { data: allPosts, isLoading: tasksLoading } = useCollection(tasksQuery);
+
+  const groupTasks = React.useMemo(() => {
+    if (!allPosts) return [];
+    return allPosts.filter(p => p.groupId === groupId);
+  }, [allPosts, groupId]);
 
   const copyInviteCode = () => {
     if (group?.inviteCode) {
@@ -100,7 +105,7 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
               <div className="space-y-3">
                 {[1, 2].map(i => <div key={i} className="h-32 bg-secondary/20 animate-pulse rounded-2xl" />)}
               </div>
-            ) : !tasks || tasks.length === 0 ? (
+            ) : groupTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 bg-white rounded-3xl border shadow-sm">
                 <div className="w-16 h-16 bg-secondary/50 rounded-full flex items-center justify-center text-2xl">📋</div>
                 <div className="space-y-1 px-8">
@@ -111,7 +116,7 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
               </div>
             ) : (
               <div className="space-y-4">
-                {tasks.map(task => (
+                {groupTasks.map(task => (
                   <PostCard key={task.id} post={task} onProfileClick={(uid) => console.log('Profile click', uid)} />
                 ))}
               </div>

@@ -20,10 +20,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
-      allow update: if isSignedIn(); // Permitir atualizações de pontos e rating por outros fluxos
+      allow update: if isSignedIn(); 
       allow delete: if isOwner(userId);
 
       match /notifications/{notificationId} {
@@ -59,11 +58,20 @@ service cloud.firestore {
       }
     }
 
-    match /chats/{chatId} {
-      function canAccessChat() {
-        return isSignedIn(); // Simplificado para garantir remoção
+    match /groups/{groupId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isExistingOwner('adminId');
+      
+      match /messages/{messageId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn();
       }
+    }
 
+    match /chats/{chatId} {
       match /messages/{messageId} {
         allow get, list: if isSignedIn();
         allow create: if isSignedIn();
