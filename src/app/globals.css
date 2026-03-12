@@ -54,7 +54,7 @@ button, .interactive-card {
   @apply transition-all duration-200 active:scale-95 cursor-pointer;
 }
 
-/* Hover e Active mais escuros para evitar o aspeto esbranquiçado */
+/* Forçar escurecimento em vez de clareamento */
 button:hover {
   @apply filter brightness-90;
 }

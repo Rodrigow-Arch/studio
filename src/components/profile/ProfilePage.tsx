@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -236,7 +235,11 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         </div>
 
         {isOwnProfile && (
-          <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 active:scale-95 transition-all rounded-2xl h-12 font-bold" onClick={handleLogout}>
+          <Button 
+            variant="outline" 
+            className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-accent active:scale-95 transition-all rounded-2xl h-12 font-bold" 
+            onClick={handleLogout}
+          >
             <LogOut className="w-4 h-4 mr-2" /> Sair da Conta
           </Button>
         )}
@@ -382,7 +385,11 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                 </div>
 
                 <div className="pt-4 pb-12">
-                  <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 rounded-2xl h-12 font-bold" onClick={handleLogout}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-accent rounded-2xl h-12 font-bold" 
+                    onClick={handleLogout}
+                  >
                     <LogOut className="w-4 h-4 mr-2" /> Terminar Sessão
                   </Button>
                 </div>
