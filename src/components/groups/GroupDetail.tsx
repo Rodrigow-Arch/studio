@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -15,10 +16,11 @@ import {
   MessageSquare, 
   Trash2, 
   Send,
-  User 
+  User,
+  UserMinus 
 } from "lucide-react";
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
-import { doc, collection, query, orderBy, deleteDoc, where, addDoc, limit } from "firebase/firestore";
+import { doc, collection, query, orderBy, deleteDoc, where, addDoc, limit, updateDoc, arrayRemove, increment } from "firebase/firestore";
 import PostCard from '../feed/PostCard';
 import CreatePost from '../feed/CreatePost';
 import { useToast } from "@/hooks/use-toast";
@@ -99,7 +101,6 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
   const handleSendMessage = async () => {
     if (!chatText.trim() || !user || !group) return;
 
-    // Aplicar filtro de profanidade
     const cleanMsg = filterProfanity(chatText);
     
     const currentUserProfile = memberProfiles?.find(p => p.id === user.uid);
@@ -160,6 +161,32 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
       onBack();
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao apagar", description: "Não foi possível apagar o grupo." });
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!group || group.adminId !== user?.uid || memberId === user?.uid) return;
+
+    try {
+      await updateDoc(groupRef, {
+        memberIds: arrayRemove(memberId)
+      });
+      
+      await updateDoc(doc(db, 'users', memberId), {
+        groupsJoined: increment(-1)
+      });
+
+      await addDoc(collection(db, 'users', memberId, 'notifications'), {
+        userId: memberId,
+        type: 'System',
+        message: `Foste removido do grupo "${group.name}".`,
+        isRead: false,
+        timestamp: new Date().toISOString()
+      });
+
+      toast({ title: "Membro removido", description: "O utilizador foi removido do grupo." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao remover membro" });
     }
   };
 
@@ -350,6 +377,7 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                 {memberProfiles?.map(profile => {
                   const trustLevel = getTrustLevel(profile.points || 0);
                   const isOnline = isUserOnline(profile.lastActive);
+                  const isThisUserAdmin = profile.id === group?.adminId;
                   
                   return (
                     <div 
@@ -380,12 +408,46 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {profile.id === group?.adminId && (
-                          <Badge variant="secondary" className="text-[8px] uppercase tracking-widest bg-primary/10 text-primary border-none">Admin</Badge>
-                        )}
-                        {trustLevel && (
-                          <span className={`text-[8px] font-black uppercase ${trustLevel.color}`}>{trustLevel.label}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end gap-1">
+                          {isThisUserAdmin && (
+                            <Badge variant="secondary" className="text-[8px] uppercase tracking-widest bg-primary/10 text-primary border-none">Admin</Badge>
+                          )}
+                          {trustLevel && (
+                            <span className={`text-[8px] font-black uppercase ${trustLevel.color}`}>{trustLevel.label}</span>
+                          )}
+                        </div>
+                        
+                        {isAdmin && !isThisUserAdmin && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <UserMinus className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-3xl max-w-[320px]" onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover Membro?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs">
+                                  Tens a certeza que queres remover {profile.fullName} deste grupo?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="flex-row gap-2">
+                                <AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleRemoveMember(profile.id)} 
+                                  className="flex-1 bg-destructive hover:bg-destructive/90 rounded-xl"
+                                >
+                                  Sim, Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </div>
