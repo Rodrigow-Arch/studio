@@ -14,7 +14,7 @@ import { DISTRITOS_PORTUGAL } from "@/lib/geo";
 import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { doc, setDoc, getDocs, collection, query, where, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
 import { generatePersonalizedUsernameSuggestion } from "@/ai/flows/personalized-username-suggestion";
@@ -69,6 +69,13 @@ export default function AuthFlow() {
         if (!formData.email.includes('@')) throw new Error('Email inválido');
         if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
         if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
+        
+        // Verificação de Email Único
+        const qEmail = query(collection(db, "users"), where("email", "==", formData.email.trim().toLowerCase()), limit(1));
+        const snapEmail = await getDocs(qEmail);
+        if (!snapEmail.empty) {
+          throw new Error('Este email já está associado a outra conta. Tenta fazer login.');
+        }
       }
       
       if (step === 2) {
@@ -76,7 +83,7 @@ export default function AuthFlow() {
         if (!formData.username) throw new Error('Username é obrigatório');
         
         const cleanUsername = formData.username.toLowerCase().trim();
-        const q = query(collection(db, "users"), where("username", "==", cleanUsername));
+        const q = query(collection(db, "users"), where("username", "==", cleanUsername), limit(1));
         const snap = await getDocs(q);
         if (!snap.empty) {
           throw new Error('Este @username já está em uso. Tenta outro!');
@@ -131,9 +138,9 @@ export default function AuthFlow() {
     setError('');
     
     try {
-      // Dupla verificação de username no final por segurança
+      // Dupla verificação final por segurança
       const cleanUsername = formData.username.toLowerCase().trim();
-      const q = query(collection(db, "users"), where("username", "==", cleanUsername));
+      const q = query(collection(db, "users"), where("username", "==", cleanUsername), limit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
         setStep(2);
@@ -149,7 +156,7 @@ export default function AuthFlow() {
         id: user.uid,
         fullName: formData.name,
         username: cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`,
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         birthDate: formData.dataNasc,
         district: formData.distrito,
         zone: formData.zona,
