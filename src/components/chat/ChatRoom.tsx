@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -21,7 +22,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const [rating, setRating] = React.useState(5);
   const [ratingComment, setRatingComment] = React.useState('');
   const [isResolving, setIsResolving] = React.useState(false);
-  const [otherProfile, setOtherProfile] = React.useState<any>(null);
   
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -30,13 +30,8 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const isAuthor = post.authorId === user?.uid;
   const otherId = isAuthor ? post.helperId : post.authorId;
 
-  React.useEffect(() => {
-    if (otherId) {
-      getDoc(doc(db, 'users', otherId)).then(snap => {
-        if (snap.exists()) setOtherProfile(snap.data());
-      });
-    }
-  }, [db, otherId]);
+  const otherProfileRef = useMemoFirebase(() => otherId ? doc(db, 'users', otherId) : null, [db, otherId]);
+  const { data: otherProfile } = useDoc(otherProfileRef);
   
   const messagesQuery = useMemoFirebase(() => {
     return query(

@@ -1,17 +1,18 @@
+
 "use client";
 
 import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Euro, Wallet } from "lucide-react";
+import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
-import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment, getDoc } from "firebase/firestore";
+import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 
@@ -22,7 +23,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [showComments, setShowComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
-  const [authorProfile, setAuthorProfile] = React.useState<any>(null);
 
   const currentUserDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -30,15 +30,11 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   const { data: currentUserProfile } = useDoc(currentUserDocRef);
 
-  React.useEffect(() => {
-    if (post.authorId) {
-      const fetchAuthor = async () => {
-        const snap = await getDoc(doc(db, 'users', post.authorId));
-        if (snap.exists()) setAuthorProfile(snap.data());
-      };
-      fetchAuthor();
-    }
+  const authorDocRef = useMemoFirebase(() => {
+    return post.authorId ? doc(db, 'users', post.authorId) : null;
   }, [db, post.authorId]);
+
+  const { data: authorProfile } = useDoc(authorDocRef);
 
   const commentsQuery = useMemoFirebase(() => {
     return query(
@@ -138,8 +134,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     }
   };
 
-  const authorPhoto = authorProfile?.photoUrl || post.authorPhotoUrl;
-
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
       <CardHeader className="p-4 flex flex-row items-center gap-3">
@@ -148,7 +142,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           onClick={() => onProfileClick(post.authorId)}
         >
           <Avatar className="w-10 h-10 transition-transform group-hover:scale-110 duration-300 shadow-sm">
-            {authorPhoto && <AvatarImage src={authorPhoto} className="object-cover" />}
+            {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
             <AvatarFallback className="text-white font-bold" style={{ backgroundColor: post.authorAvatarColor }}>
               {post.authorAvatarLetter}
             </AvatarFallback>
@@ -221,23 +215,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="space-y-3">
               {comments?.map((comment) => (
-                <div key={comment.id} className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <Avatar 
-                    className="w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform" 
-                    onClick={() => onProfileClick(comment.authorId)}
-                  >
-                    <AvatarFallback className="text-[10px] bg-secondary">{comment.authorAvatarLetter}</AvatarFallback>
-                  </Avatar>
-                  <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm">
-                    <span 
-                      className="font-bold mr-1 cursor-pointer hover:underline text-primary"
-                      onClick={() => onProfileClick(comment.authorId)}
-                    >
-                      {comment.authorUsername}
-                    </span>
-                    {comment.text}
-                  </div>
-                </div>
+                <CommentItem key={comment.id} comment={comment} onProfileClick={onProfileClick} />
               ))}
             </div>
             
@@ -257,5 +235,32 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         )}
       </CardFooter>
     </Card>
+  );
+}
+
+function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick: (uid: string) => void }) {
+  const db = useFirestore();
+  const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
+  const { data: authorProfile } = useDoc(authorRef);
+
+  return (
+    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+      <Avatar 
+        className="w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform" 
+        onClick={() => onProfileClick(comment.authorId)}
+      >
+        {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
+        <AvatarFallback className="text-[10px] bg-secondary">{comment.authorAvatarLetter}</AvatarFallback>
+      </Avatar>
+      <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm">
+        <span 
+          className="font-bold mr-1 cursor-pointer hover:underline text-primary"
+          onClick={() => onProfileClick(comment.authorId)}
+        >
+          {comment.authorUsername}
+        </span>
+        {comment.text}
+      </div>
+    </div>
   );
 }

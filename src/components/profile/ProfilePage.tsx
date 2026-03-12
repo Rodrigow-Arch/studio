@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Calendar, Lock, Camera } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -17,8 +18,6 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 interface ProfilePageProps {
@@ -47,7 +46,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
   const { data: userProfile, isLoading } = useDoc(userDocRef);
 
-  // Form state
   const [editData, setEditData] = React.useState({
     fullName: '',
     description: '',
@@ -127,11 +125,11 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for base64 prototype storage
+      if (file.size > 800 * 1024) { 
         toast({
           variant: "destructive",
           title: "Imagem muito grande",
-          description: "Por favor, escolhe uma imagem com menos de 1MB."
+          description: "Por favor, escolhe uma imagem com menos de 800KB."
         });
         return;
       }
@@ -211,7 +209,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
             { label: 'Ajudas', value: userProfile.helpsGiven, icon: ThumbsUp },
             { label: 'Posts', value: postCount, icon: MessageCircle },
             { label: 'Pontos', value: userProfile.points, icon: Award },
-          ].map((stat, idx) => (
+          ].map((stat) => (
             <Card key={stat.label} className="border-none bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <span className="text-lg font-black text-primary">{stat.value}</span>
