@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from 'react';
-import { Star, MessageSquare, Quote } from "lucide-react";
+import { Star, Quote } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, limit } from "firebase/firestore";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -15,18 +15,30 @@ interface RatingStatsProps {
 export default function RatingStats({ profile }: RatingStatsProps) {
   const db = useFirestore();
 
-  // Buscar os últimos 5 comentários de avaliação (testemunhos)
+  // Removido o orderBy do Firestore para evitar a necessidade imediata de um índice composto.
+  // Em vez disso, aumentamos ligeiramente o limite e ordenamos no código (useMemo) abaixo.
   const ratingsQuery = useMemoFirebase(() => {
     if (!profile?.id) return null;
     return query(
       collection(db, 'ratings'),
       where('ratedUserId', '==', profile.id),
-      orderBy('timestamp', 'desc'),
-      limit(5)
+      limit(20)
     );
   }, [db, profile?.id]);
 
-  const { data: ratingComments, isLoading } = useCollection(ratingsQuery);
+  const { data: rawRatings, isLoading } = useCollection(ratingsQuery);
+
+  // Ordenação manual no cliente para garantir que os mais recentes aparecem primeiro sem erro de índice.
+  const ratingComments = React.useMemo(() => {
+    if (!rawRatings) return [];
+    return [...rawRatings]
+      .sort((a, b) => {
+        const dateA = new Date(a.timestamp).getTime();
+        const dateB = new Date(b.timestamp).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 5);
+  }, [rawRatings]);
 
   if (!profile) return null;
 
