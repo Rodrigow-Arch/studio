@@ -14,7 +14,7 @@ import { DISTRITOS_PORTUGAL } from "@/lib/geo";
 import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDocs, collection, query, where, limit } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
 import { generatePersonalizedUsernameSuggestion } from "@/ai/flows/personalized-username-suggestion";
@@ -74,16 +74,6 @@ export default function AuthFlow() {
       if (step === 2) {
         if (!formData.name) throw new Error('Nome é obrigatório');
         if (!formData.username) throw new Error('Username é obrigatório');
-        
-        const cleanUsername = formData.username.toLowerCase().trim();
-        const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
-        
-        // Verificação de @username duplicado
-        const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          throw new Error(`Já existe um utilizador com o username ${finalUsername}. Por favor, troca o teu username.`);
-        }
       }
 
       if (step === 3) {
@@ -426,7 +416,7 @@ export default function AuthFlow() {
                     <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value.toLowerCase()})} placeholder="@username" />
                   </div>
                   <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext} disabled={loading}>
-                    {loading ? "A verificar disponibilidade..." : "Continuar"} <ArrowRight className="ml-2 w-4 h-4" />
+                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </CardContent>
               </Card>

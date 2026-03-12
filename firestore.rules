@@ -21,7 +21,7 @@ service cloud.firestore {
 
     // Regras para Utilizadores
     match /users/{userId} {
-      // Permite leitura pública total para perfis e verificações de disponibilidade
+      // Permite leitura pública total para perfis
       allow read: if true; 
       // Apenas o próprio pode criar o seu perfil inicial
       allow create: if isOwner(userId);

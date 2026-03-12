@@ -82,16 +82,12 @@ export function useCollection<T = any>(
 
         let finalError: Error = err;
         
-        // Only emit permission error if it's truly a permission-denied error
         if (err.code === 'permission-denied') {
           finalError = new FirestorePermissionError({
             operation: 'list',
             path,
           });
-          // Avoid throwing global error that breaks the UI
-          console.warn("Firestore Permission Denied (Handled):", path);
-        } else {
-          console.error("Firestore Error:", err.code, err.message);
+          errorEmitter.emit('permission-error', finalError as FirestorePermissionError);
         }
 
         setError(finalError);
