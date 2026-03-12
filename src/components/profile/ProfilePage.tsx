@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -13,12 +12,13 @@ import {
   MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, 
   Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
   ShieldCheck, AlertTriangle, Info, CheckCircle2, XCircle, HeartHandshake,
-  Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays
+  Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
+  Send, MessageSquareQuote
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
-import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth, useCollection } from '@/firebase';
+import { doc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useToast } from "@/hooks/use-toast";
 import { DISTRITOS_PORTUGAL, calculateDistance } from '@/lib/geo';
@@ -26,9 +26,10 @@ import { generateBioDescription } from '@/ai/flows/bio-description-generation-fl
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import ReportModal from '../security/ReportModal';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import ImageCropper from '@/components/profile/ImageCropper';
+import { filterProfanity } from '@/lib/utils';
 
 interface SocialLink {
   platform: string;
@@ -53,6 +54,8 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
+  const [newProfileComment, setNewProfileComment] = React.useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const targetUid = userId || currentUser?.uid;
@@ -73,6 +76,18 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     photoUrl: '',
     socialLinks: [] as SocialLink[]
   });
+
+  // Buscar comentários do perfil (Mural)
+  const profileCommentsQuery = useMemoFirebase(() => {
+    if (!targetUid) return null;
+    return query(
+      collection(db, 'users', targetUid, 'profileComments'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    );
+  }, [db, targetUid]);
+
+  const { data: profileComments, isLoading: commentsLoading } = useCollection(profileCommentsQuery);
 
   React.useEffect(() => {
     if (userProfile) {
@@ -151,6 +166,40 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAddProfileComment = async () => {
+    if (!newProfileComment.trim() || !currentUser || !userProfile || isSubmittingComment) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const cleanComment = filterProfanity(newProfileComment);
+      const currentUserDoc = await getDocs(query(collection(db, 'users'), where('id', '==', currentUser.uid)));
+      const currentUserData = currentUserDoc.docs[0].data();
+
+      await addDoc(collection(db, 'users', targetUid, 'profileComments'), {
+        text: cleanComment,
+        authorId: currentUser.uid,
+        authorUsername: currentUserData.username,
+        authorAvatarLetter: currentUserData.avatarLetter,
+        authorAvatarColor: currentUserData.avatarColor,
+        timestamp: new Date().toISOString()
+      });
+
+      setNewProfileComment('');
+      toast({
+        title: "Mensagem enviada!",
+        description: "O teu comentário foi publicado no mural.",
+      });
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao comentar",
+        description: "Não foi possível publicar a tua mensagem.",
+      });
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -365,8 +414,68 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-headline text-lg">Avaliações</h3>
+          <h3 className="font-headline text-lg">Avaliações e Testemunhos</h3>
           <RatingStats profile={userProfile} />
+        </div>
+
+        {/* Mural do Perfil (Comentários da Comunidade) */}
+        <div className="space-y-4 pt-6 border-t">
+          <h3 className="font-headline text-lg flex items-center gap-2">
+            <MessageSquareQuote className="w-5 h-5 text-primary" /> Mural da Comunidade
+          </h3>
+
+          {!isOwnProfile && (
+            <div className="bg-white p-4 rounded-3xl border shadow-sm space-y-3">
+              <Textarea 
+                placeholder={`Deixa uma mensagem para ${userProfile.fullName.split(' ')[0]}...`}
+                value={newProfileComment}
+                onChange={(e) => setNewProfileComment(e.target.value)}
+                className="text-xs min-h-[80px] rounded-2xl resize-none border-secondary focus:border-primary"
+              />
+              <div className="flex justify-end">
+                <Button 
+                  size="sm" 
+                  className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 rounded-xl"
+                  disabled={!newProfileComment.trim() || isSubmittingComment}
+                  onClick={handleAddProfileComment}
+                >
+                  {isSubmittingComment ? "A enviar..." : "Publicar no Mural"} <Send className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {commentsLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map(i => <div key={i} className="h-20 bg-secondary/20 animate-pulse rounded-2xl" />)}
+              </div>
+            ) : profileComments && profileComments.length > 0 ? (
+              profileComments.map((pc: any) => (
+                <div key={pc.id} className="flex gap-3 animate-in fade-in slide-in-from-left-2">
+                  <Avatar className="w-8 h-8 shrink-0 border">
+                    <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: pc.authorAvatarColor }}>
+                      {pc.authorAvatarLetter}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black text-primary">{pc.authorUsername}</span>
+                      <span className="text-[8px] text-muted-foreground uppercase font-medium">
+                        {formatDistanceToNow(new Date(pc.timestamp), { addSuffix: true, locale: pt })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{pc.text}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center bg-secondary/5 rounded-3xl border border-dashed flex flex-col items-center gap-2">
+                <MessageCircle className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Ainda sem mensagens no mural</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="pt-4 border-t space-y-4">
