@@ -40,7 +40,7 @@ interface SocialLink {
 
 interface ProfilePageProps {
   userId?: string;
-  onBack?: () => void;
+  onBack?: void;
   onProfileClick?: (uid: string) => void;
 }
 
@@ -468,7 +468,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-[9px] font-black uppercase text-primary hover:bg-primary/5"
+                className="h-7 text-[9px] font-black uppercase text-primary transition-all hover:bg-primary hover:text-white active:bg-accent"
                 onClick={() => setShowAllMural(!showAllMural)}
               >
                 {showAllMural ? (
