@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -12,7 +11,7 @@ import NotificationsPage from '@/components/notifications/NotificationsPage';
 import CreatePost from '@/components/feed/CreatePost';
 import { Header } from '@/components/layout/Header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -27,6 +26,26 @@ export default function Home() {
   const [activeTab, setActiveTab] = React.useState('feed');
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [viewingUserId, setViewingUserId] = React.useState<string | null>(null);
+
+  // Monitorização de presença Online (Heartbeat)
+  React.useEffect(() => {
+    if (!user) return;
+
+    const updatePresence = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          lastActive: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Erro ao atualizar presença:", e);
+      }
+    };
+
+    updatePresence(); // Atualizar ao carregar
+    const interval = setInterval(updatePresence, 60000); // A cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, [user, db]);
 
   if (isUserLoading || isProfileLoading) {
     return (

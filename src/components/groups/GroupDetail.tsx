@@ -36,7 +36,7 @@ import {
 import { getTrustLevel } from '@/lib/trust-levels';
 import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
-import { filterProfanity } from '@/lib/utils';
+import { filterProfanity, isUserOnline } from '@/lib/utils';
 
 interface GroupDetailProps {
   groupId: string;
@@ -301,7 +301,7 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                           <span className="text-[10px] font-bold text-muted-foreground">{msg.authorUsername}</span>
                           {trustLevel && <span className="text-[10px]">{trustLevel.icon}</span>}
                         </div>
-                        <div className={`p-2 rounded-2xl text-sm shadow-sm border ${
+                        <div className={`p-2.5 rounded-2xl text-sm shadow-sm border ${
                           isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none'
                         }`}>
                           <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -349,6 +349,8 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
               <div className="space-y-2">
                 {memberProfiles?.map(profile => {
                   const trustLevel = getTrustLevel(profile.points || 0);
+                  const isOnline = isUserOnline(profile.lastActive);
+                  
                   return (
                     <div 
                       key={profile.id} 
@@ -356,18 +358,26 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                       onClick={() => onProfileClick(profile.id)}
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border">
-                          {profile.photoUrl && <AvatarImage src={profile.photoUrl} className="object-cover" />}
-                          <AvatarFallback className="text-white font-bold" style={{ backgroundColor: profile.avatarColor }}>
-                            {profile.avatarLetter}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 border">
+                            {profile.photoUrl && <AvatarImage src={profile.photoUrl} className="object-cover" />}
+                            <AvatarFallback className="text-white font-bold" style={{ backgroundColor: profile.avatarColor }}>
+                              {profile.avatarLetter}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${isOnline ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                        </div>
                         <div>
                           <div className="flex items-center gap-1">
                             <p className="text-sm font-bold leading-none">{profile.fullName}</p>
                             {trustLevel && <span title={trustLevel.label}>{trustLevel.icon}</span>}
                           </div>
-                          <p className="text-[10px] text-muted-foreground">{profile.username}</p>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            {profile.username} • 
+                            <span className={isOnline ? 'text-green-600 font-bold' : ''}>
+                              {isOnline ? 'Online' : 'Offline'}
+                            </span>
+                          </p>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">

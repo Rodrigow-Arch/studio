@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -31,6 +30,17 @@ export function filterProfanity(text: string): string {
   });
   
   return filteredText;
+}
+
+/**
+ * Verifica se um utilizador está online (ativo nos últimos 5 minutos)
+ */
+export function isUserOnline(lastActive: string | undefined): boolean {
+  if (!lastActive) return false;
+  const lastActiveDate = new Date(lastActive);
+  const now = new Date();
+  const diffInMinutes = (now.getTime() - lastActiveDate.getTime()) / (1000 * 60);
+  return diffInMinutes < 5;
 }
 
 /**

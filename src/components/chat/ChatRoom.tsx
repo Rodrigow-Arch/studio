@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import EmergencyModal from '../security/EmergencyModal';
-import { filterProfanity } from '@/lib/utils';
+import { filterProfanity, isUserOnline } from '@/lib/utils';
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -266,6 +266,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
   const trustLevel = otherProfile ? getTrustLevel(otherProfile.points || 0) : null;
+  const isOnline = otherProfile ? isUserOnline(otherProfile.lastActive) : false;
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
@@ -287,9 +288,12 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
                 <p className="text-xs font-bold leading-none hover:text-primary transition-colors truncate">{otherName}</p>
                 {trustLevel && <span className="text-xs" title={trustLevel.label}>{trustLevel.icon}</span>}
               </div>
-              <p className="text-[9px] text-muted-foreground flex items-center gap-0.5 truncate uppercase font-bold tracking-tighter">
-                Post: {post.type}
-              </p>
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                <p className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground">
+                  {isOnline ? 'Online' : 'Offline'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -326,7 +330,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
             <React.Fragment key={msg.id}>
               {renderDateSeparator(msg, idx > 0 ? messages[idx - 1] : null)}
               <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[80%] p-2 rounded-2xl text-sm shadow-sm border ${
+                <div className={`max-w-[80%] p-2.5 rounded-2xl text-sm shadow-sm border ${
                   isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none'
                 }`}>
                   <p className="whitespace-pre-wrap">{msg.text}</p>
