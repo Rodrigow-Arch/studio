@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -105,7 +104,7 @@ export default function RatingStats({ profile, onProfileClick }: RatingStatsProp
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-6 text-[9px] font-black uppercase text-primary transition-all hover:bg-primary hover:text-white active:bg-primary"
+                className="h-7 text-[9px] font-black uppercase text-white bg-primary hover:bg-primary transition-all active:scale-95 px-3 rounded-full"
                 onClick={() => setShowAllTestimonials(!showAllTestimonials)}
               >
                 {showAllTestimonials ? (

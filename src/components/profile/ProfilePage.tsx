@@ -13,7 +13,8 @@ import {
   Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
   ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
   Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
-  Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon
+  Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon,
+  Settings
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -39,7 +40,7 @@ interface SocialLink {
 
 interface ProfilePageProps {
   userId?: string;
-  onBack?: void;
+  onBack?: () => void;
   onProfileClick?: (uid: string) => void;
 }
 
@@ -336,7 +337,12 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
          
          <div className="absolute top-4 left-4 flex gap-2 z-10">
             {onBack && (
-              <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all" onClick={onBack}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 text-white hover:bg-primary hover:text-white rounded-full active:scale-90 transition-all border border-white/10" 
+                onClick={onBack}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
@@ -346,15 +352,20 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all text-destructive-foreground hover:bg-primary"
+                className="bg-white/20 text-white hover:bg-primary hover:text-white rounded-full active:scale-90 transition-all text-destructive-foreground hover:bg-primary border border-white/10"
                 onClick={() => setIsReportOpen(true)}
               >
                 <Flag className="w-5 h-5" />
               </Button>
             )}
             {isOwnProfile && (
-              <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all" onClick={() => setShowSettings(true)}>
-                <Save className="w-5 h-5" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 text-white hover:bg-primary hover:text-white rounded-full active:scale-90 transition-all border border-white/10" 
+                onClick={() => setShowSettings(true)}
+              >
+                <Settings className="w-5 h-5" />
               </Button>
             )}
          </div>
@@ -467,7 +478,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-[9px] font-black uppercase text-primary transition-all hover:bg-primary hover:text-white active:bg-primary"
+                className="h-7 text-[9px] font-black uppercase text-white bg-primary hover:bg-primary transition-all active:scale-95 px-3 rounded-full"
                 onClick={() => setShowAllMural(!showAllMural)}
               >
                 {showAllMural ? (
