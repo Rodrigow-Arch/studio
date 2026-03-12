@@ -319,15 +319,15 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           return (
             <React.Fragment key={msg.id}>
               {renderDateSeparator(msg, idx > 0 ? messages[idx - 1] : null)}
-              <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
+              <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[80%] p-2.5 rounded-2xl text-sm shadow-sm ${
                   isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
                 }`}>
-                  <p>{msg.text}</p>
-                  <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>
-                    {format(new Date(msg.timestamp), 'HH:mm')}
-                  </p>
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
+                <p className="text-[8px] mt-0.5 text-muted-foreground px-1">
+                  {format(new Date(msg.timestamp), 'HH:mm')}
+                </p>
               </div>
             </React.Fragment>
           );

@@ -299,21 +299,21 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                           <span className="text-[10px] font-bold text-muted-foreground">{msg.authorUsername}</span>
                           {trustLevel && <span className="text-[10px]">{trustLevel.icon}</span>}
                         </div>
-                        <div className={`p-3 rounded-2xl text-sm shadow-sm ${
+                        <div className={`p-2.5 rounded-2xl text-sm shadow-sm ${
                           isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
                         }`}>
                           <p className="whitespace-pre-wrap">{msg.text}</p>
-                          <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>
-                            {format(new Date(msg.timestamp), 'HH:mm')}
-                          </p>
                         </div>
+                        <p className="text-[8px] mt-0.5 text-muted-foreground px-1">
+                          {format(new Date(msg.timestamp), 'HH:mm')}
+                        </p>
                       </div>
                     </div>
                   </React.Fragment>
                 );
               })}
               
-              {!messages || messages.length === 0 && (
+              {(!messages || messages.length === 0) && (
                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-30">
                   <MessageSquare className="w-12 h-12" />
                   <p className="text-xs font-bold uppercase tracking-widest">Início da conversa do grupo</p>
