@@ -16,6 +16,11 @@ export default function SafetyWarningModal({ isOpen, onConfirm, onCancel }: Safe
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="max-w-[340px] rounded-3xl border-yellow-400/20 z-[200] p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="hidden">
+          <DialogTitle>Aviso de Segurança</DialogTitle>
+          <DialogDescription>Aviso preventivo para encontros presenciais na rede.</DialogDescription>
+        </DialogHeader>
+
         <div className="bg-yellow-50 p-8 text-center border-b border-yellow-100">
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-md border-2 border-yellow-200">
             <ShieldAlert className="w-10 h-10 text-yellow-600 animate-bounce" />

@@ -66,6 +66,11 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, postId }:
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[340px] rounded-3xl z-[200] p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="hidden">
+          <DialogTitle>Denunciar Utilizador</DialogTitle>
+          <DialogDescription>Formulário de denúncia para segurança da comunidade.</DialogDescription>
+        </DialogHeader>
+
         <div className="bg-destructive/5 p-6 text-center border-b">
           <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border-2 border-destructive/20 text-destructive">
             <ShieldAlert className="w-8 h-8" />

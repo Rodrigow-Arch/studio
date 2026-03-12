@@ -52,6 +52,11 @@ export default function SOSRequirementModal({ isOpen, onClose, userProfile }: SO
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[360px] rounded-3xl border-primary/20 z-[200] p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="hidden">
+          <DialogTitle>Acesso SOS Restrito</DialogTitle>
+          <DialogDescription>Requisitos necessários para responder a pedidos SOS.</DialogDescription>
+        </DialogHeader>
+
         <div className="bg-primary/5 p-6 text-center border-b">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md border-2 border-primary/20">
             <ShieldCheck className="w-8 h-8 text-primary" />

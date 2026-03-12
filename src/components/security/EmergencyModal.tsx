@@ -23,6 +23,11 @@ export default function EmergencyModal({ isOpen, onClose }: EmergencyModalProps)
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[360px] rounded-3xl border-destructive/20 z-[200] overflow-hidden p-0">
+        <DialogHeader className="hidden">
+          <DialogTitle>SOS Emergência</DialogTitle>
+          <DialogDescription>Contactos de emergência nacionais portugueses.</DialogDescription>
+        </DialogHeader>
+
         <div className="bg-destructive/10 p-6 text-center border-b border-destructive/10">
           <div className="w-16 h-16 bg-destructive text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
             <AlertTriangle className="w-8 h-8" />
