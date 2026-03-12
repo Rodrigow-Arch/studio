@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, LogIn, Hash } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 export default function JoinGroup({ onClose }: { onClose: () => void }) {
   const { user } = useUser();
@@ -52,6 +53,13 @@ export default function JoinGroup({ onClose }: { onClose: () => void }) {
       await updateDoc(doc(db, "groups", groupDoc.id), {
         memberIds: arrayUnion(user.uid)
       });
+      
+      await updateDoc(doc(db, "users", user.uid), {
+        groupsJoined: increment(1)
+      });
+
+      // Verificar badges após entrar no grupo
+      await checkAndAwardBadges(db, user.uid);
       
       toast({
         title: "Bem-vindo ao grupo!",

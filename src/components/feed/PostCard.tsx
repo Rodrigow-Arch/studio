@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
 import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
@@ -66,6 +67,13 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       await updateDoc(doc(db, 'posts', post.id), {
         commentCount: increment(1)
       });
+      await updateDoc(doc(db, 'users', user.uid), {
+        commentsMade: increment(1)
+      });
+
+      // Verificar badges após comentar
+      await checkAndAwardBadges(db, user.uid);
+
       setCommentText('');
     } catch (e) {
       console.error(e);

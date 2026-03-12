@@ -1,9 +1,8 @@
-
 "use client";
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X, UserCheck, MessageCircle, Award } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -35,6 +34,7 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
       case 'Partilha': return <Share2 className="text-green-500" />;
       case 'Evento': return <Calendar className="text-purple-500" />;
       case 'chat_message': return <MessageCircle className="text-primary" />;
+      case 'badge': return <Award className="text-yellow-500" />;
       default: return <CheckCircle2 className="text-primary" />;
     }
   };
@@ -97,6 +97,8 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
     
     if (notif.type === 'chat_message' || notif.type === 'accepted') {
       onAction('chat');
+    } else if (notif.type === 'badge') {
+      onAction('profile');
     } else if (notif.postId) {
       onAction('feed', { postId: notif.postId });
     }

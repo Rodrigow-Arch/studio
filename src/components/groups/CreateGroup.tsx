@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -8,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Shield, Users, BookOpen, Check } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 export default function CreateGroup({ onClose }: { onClose: () => void }) {
   const { user } = useUser();
@@ -40,6 +40,13 @@ export default function CreateGroup({ onClose }: { onClose: () => void }) {
       };
 
       await addDoc(collection(db, "groups"), groupData);
+      
+      await updateDoc(doc(db, "users", user.uid), {
+        groupsAdmin: increment(1)
+      });
+
+      // Verificar badges após criar grupo
+      await checkAndAwardBadges(db, user.uid);
       
       toast({
         title: "Grupo criado!",

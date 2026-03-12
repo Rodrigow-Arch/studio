@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -11,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Calendar, Lock } from "lucide-react";
 import RatingStats from './RatingStats';
+import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -19,6 +19,7 @@ import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 interface ProfilePageProps {
   userId?: string;
@@ -100,6 +101,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         zone: editData.zone,
         phoneNumber: editData.phoneNumber,
       });
+      
+      // Verificar badges após completar perfil
+      await checkAndAwardBadges(db, currentUser.uid);
+
       toast({
         title: "Definições guardadas!",
         description: "O teu perfil foi atualizado com sucesso.",
@@ -204,17 +209,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         </div>
 
         <div className="pt-4 border-t space-y-4 animate-in fade-in duration-1000">
-          <h3 className="font-headline text-lg">Badges</h3>
-          <div className="grid grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="flex flex-col items-center gap-1 opacity-20 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-help">
-                <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white shadow-inner">
-                  <Award className="w-6 h-6" />
-                </div>
-                <span className="text-[8px] uppercase font-bold">Bloqueado</span>
-              </div>
-            ))}
-          </div>
+          <BadgeGrid earnedBadgeIds={userProfile.earnedBadges || []} />
         </div>
 
         {isOwnProfile && (
@@ -245,7 +240,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
            <ScrollArea className="flex-1">
              <div className="p-6 space-y-8 pb-24">
-                {/* Editable Section */}
                 <div className="space-y-6">
                   <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Informação Editável</h3>
                   
@@ -316,7 +310,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                   </div>
                 </div>
 
-                {/* Read-Only Section */}
                 <div className="space-y-6 pt-4">
                   <h3 className="text-xs font-black uppercase text-destructive tracking-widest border-b pb-2 flex items-center justify-between">
                     Segurança e Privacidade <Lock className="w-3 h-3" />

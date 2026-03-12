@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -11,6 +10,7 @@ import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDo
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -127,7 +127,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     try {
       const batch = writeBatch(db);
       
-      // 1. Mark post as resolved and schedule deletion for 1 day later
       const postRef = doc(db, 'posts', post.id);
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
@@ -137,7 +136,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         expiresAt: expiresAt.toISOString()
       });
 
-      // 2. Create the rating
       const ratingRef = doc(collection(db, 'ratings'));
       batch.set(ratingRef, {
         id: ratingRef.id,
@@ -150,7 +148,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         timestamp: new Date().toISOString()
       });
 
-      // 3. Update helper profile stats
       const helperRef = doc(db, 'users', post.helperId);
       const helperSnap = await getDoc(helperRef);
       const helperData = helperSnap.data();
@@ -160,15 +157,21 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         const oldAverage = helperData.averageRating || 0;
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
         
-        batch.update(helperRef, {
+        // Atribuição de pontos e contagem de ajudas
+        const updateObj: any = {
           points: increment(50),
           helpsGiven: increment(1),
           totalRatings: totalRatings,
           averageRating: newAverage
-        });
+        };
+
+        // Contar SOS e Tarefas Pagas para badges
+        if (post.type === 'SOS') updateObj.sosResolved = increment(1);
+        if (post.paymentAmount > 0) updateObj.paidTasksCompleted = increment(1);
+
+        batch.update(helperRef, updateObj);
       }
 
-      // 4. Delete all messages and typing indicators (full cleanup)
       const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
       messagesSnap.forEach(d => batch.delete(d.ref));
       
@@ -176,6 +179,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       typingSnap.forEach(d => batch.delete(d.ref));
 
       await batch.commit();
+
+      // Verificar badges após resolver
+      await checkAndAwardBadges(db, post.helperId);
 
       toast({
         title: "Problema Resolvido!",

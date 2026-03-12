@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -14,6 +13,7 @@ import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { checkAndAwardBadges } from '@/lib/badge-logic';
 
 type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
 
@@ -76,9 +76,23 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
 
       await addDoc(collection(db, "posts"), postData);
       
-      await updateDoc(doc(db, "users", user.uid), {
-        points: increment(groupId ? 10 : 15)
-      });
+      const updateData: any = {
+        points: increment(groupId ? 10 : 15),
+        postsCreated: increment(1)
+      };
+
+      if (tipo === 'Partilha' && (!valorNum || valorNum === 0)) {
+        updateData.sharesMade = increment(1);
+      }
+      
+      if (tipo === 'Evento') {
+        updateData.eventsCreated = increment(1);
+      }
+
+      await updateDoc(doc(db, "users", user.uid), updateData);
+      
+      // Verificar badges após postar
+      await checkAndAwardBadges(db, user.uid);
 
       toast({
         title: groupId ? "Tarefa criada!" : "Publicado!",
