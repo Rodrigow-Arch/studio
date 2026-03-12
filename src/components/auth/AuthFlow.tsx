@@ -7,17 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { MapPin, CheckCircle2, ArrowRight } from "lucide-react";
+import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
 
 export default function AuthFlow() {
   const { toast } = useToast();
   const auth = useAuth();
   const db = useFirestore();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = React.useState<'login' | 'register'>('register');
   const [step, setStep] = React.useState(1);
@@ -30,11 +34,14 @@ export default function AuthFlow() {
     distrito: '',
     zona: '',
     telefone: '',
+    photoUrl: '',
+    description: '',
     lat: 38.7223,
     lng: -9.1393
   });
 
   const [loading, setLoading] = React.useState(false);
+  const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [error, setError] = React.useState('');
 
   const handleNext = () => {
@@ -62,6 +69,11 @@ export default function AuthFlow() {
       if (!formData.distrito) return setError('Distrito é obrigatório');
       if (!formData.zona) return setError('Zona/Bairro é obrigatório');
     }
+    if (step === 5) {
+      if (!formData.telefone || formData.telefone.replace(/\s/g, '').length < 9) {
+        return setError('Número de telemóvel inválido');
+      }
+    }
 
     setStep(s => s + 1);
   };
@@ -79,10 +91,6 @@ export default function AuthFlow() {
   };
 
   const handleCreateAccount = async () => {
-    if (!formData.telefone || formData.telefone.length < 9) {
-      return setError('Por favor, insere um número de telefone válido.');
-    }
-
     setLoading(true);
     setError('');
     
@@ -103,7 +111,9 @@ export default function AuthFlow() {
         latitude: formData.lat,
         longitude: formData.lng,
         phoneNumber: formData.telefone,
-        isPhoneVerified: true, // Mocked for prototype
+        photoUrl: formData.photoUrl,
+        description: formData.description,
+        isPhoneVerified: true, 
         points: 0, 
         helpsGiven: 0,
         reportCount: 0,
@@ -112,7 +122,8 @@ export default function AuthFlow() {
         totalRatings: 0,
         avatarLetter: formData.name.charAt(0).toUpperCase(),
         avatarColor: avatarCor,
-        joinedTimestamp: new Date().toISOString()
+        joinedTimestamp: new Date().toISOString(),
+        socialLinks: []
       };
 
       await setDoc(doc(db, "users", user.uid), userProfile);
@@ -125,6 +136,51 @@ export default function AuthFlow() {
       setError(err.message || 'Ocorreu um erro ao criar a conta.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800 * 1024) { 
+        toast({
+          variant: "destructive",
+          title: "Imagem muito grande",
+          description: "Por favor, escolhe uma imagem com menos de 800KB."
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateBio = async () => {
+    setIsGeneratingBio(true);
+    try {
+      const res = await generateBioDescription({
+        name: formData.name,
+        district: formData.distrito,
+        zone: formData.zona
+      });
+      if (res.suggestions && res.suggestions.length > 0) {
+        setFormData(prev => ({ ...prev, description: res.suggestions[0] }));
+        toast({
+          title: "Bio sugerida!",
+          description: "A IA criou uma biografia para ti.",
+        });
+      }
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Erro na IA",
+        description: "Não foi possível gerar a sugestão agora.",
+      });
+    } finally {
+      setIsGeneratingBio(false);
     }
   };
 
@@ -201,8 +257,8 @@ export default function AuthFlow() {
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-center gap-1">
-              <Progress value={(step / 5) * 100} className="h-2 w-32" />
-              <span className="text-xs text-muted-foreground font-black">{step}/5</span>
+              <Progress value={(step / 7) * 100} className="h-2 w-32" />
+              <span className="text-xs text-muted-foreground font-black">{step}/7</span>
             </div>
 
             {error && <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-xl border border-destructive/20 animate-in fade-in zoom-in-95 font-bold">{error}</div>}
@@ -288,7 +344,7 @@ export default function AuthFlow() {
             )}
 
             {step === 5 && (
-              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl border-primary/20">
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
                 <CardHeader>
                   <CardTitle>Passo 5: Contacto</CardTitle>
                   <CardDescription>O teu número é essencial para verificações de segurança.</CardDescription>
@@ -297,6 +353,72 @@ export default function AuthFlow() {
                   <div className="space-y-2">
                     <Label>Telemóvel (+351)</Label>
                     <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
+                  </div>
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
+                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 6 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
+                <CardHeader>
+                  <CardTitle>Passo 6: Foto de Perfil</CardTitle>
+                  <CardDescription>Mostra à comunidade quem tu és. (Opcional)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 flex flex-col items-center">
+                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <Avatar className="w-28 h-28 border-4 border-primary/10 shadow-lg">
+                      {formData.photoUrl && <AvatarImage src={formData.photoUrl} className="object-cover" />}
+                      <AvatarFallback className="text-3xl font-bold bg-secondary">
+                        {formData.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="text-white w-8 h-8" />
+                    </div>
+                  </div>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                  
+                  <div className="w-full space-y-2">
+                    <Button variant="outline" className="w-full rounded-xl text-xs h-9" onClick={() => fileInputRef.current?.click()}>
+                      Selecionar Imagem
+                    </Button>
+                    <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
+                      {formData.photoUrl ? "Continuar" : "Saltar Passo"} <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 7 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl border-primary/20">
+                <CardHeader>
+                  <CardTitle>Passo 7: Sobre Ti</CardTitle>
+                  <CardDescription>Uma breve descrição ajuda vizinhos a conhecerem-te melhor. (Opcional)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-black uppercase text-muted-foreground tracking-tighter">Biografia</Label>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-[9px] gap-1 px-2 text-primary hover:bg-primary/5" 
+                        onClick={handleGenerateBio}
+                        disabled={isGeneratingBio}
+                      >
+                        <Sparkles className={`w-3 h-3 ${isGeneratingBio ? 'animate-spin' : ''}`} /> Sugerir com IA
+                      </Button>
+                    </div>
+                    <Textarea 
+                      placeholder="Conta algo sobre ti... (ex: Gosto de bricolage, jardinagem, etc.)" 
+                      value={formData.description}
+                      onChange={e => setFormData({...formData, description: e.target.value})}
+                      className="min-h-[120px] rounded-xl text-sm"
+                    />
                   </div>
                   <Button className="w-full h-14 rounded-2xl font-black bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20 uppercase tracking-widest text-xs" onClick={handleCreateAccount} disabled={loading}>
                     {loading ? "A criar conta..." : "Finalizar e Entrar"} <CheckCircle2 className="ml-2 w-5 h-5" />
