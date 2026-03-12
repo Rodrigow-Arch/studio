@@ -110,7 +110,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="app-container flex flex-col h-screen overflow-hidden">
       {!showNotifications && <Header onNotificationClick={() => setShowNotifications(true)} />}
       
       <div className="flex-1 overflow-y-auto pb-24">
@@ -127,13 +127,15 @@ export default function Home() {
         setViewingUserId(null);
       }} />
 
-      {/* Overlay de Perfil: Permite ver o perfil sem desmontar o fundo (ex: lista de membros do grupo) */}
+      {/* Overlay de Perfil: Adaptável para PC */}
       {viewingUserId && (
-        <div className="fixed inset-0 z-[100] bg-background overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
-          <ProfilePage 
-            userId={viewingUserId} 
-            onBack={() => setViewingUserId(null)} 
-          />
+        <div className="fixed inset-0 z-[100] bg-background md:bg-black/40 flex justify-center items-center">
+          <div className="w-full h-full md:max-w-2xl lg:max-w-3xl md:h-[90vh] md:rounded-3xl overflow-hidden shadow-2xl relative bg-white">
+            <ProfilePage 
+              userId={viewingUserId} 
+              onBack={() => setViewingUserId(null)} 
+            />
+          </div>
         </div>
       )}
     </div>

@@ -36,7 +36,7 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white border-t px-4 py-2 flex items-center justify-between z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
+    <nav className="absolute bottom-0 left-0 right-0 w-full bg-white border-t px-4 py-2 flex items-center justify-between z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

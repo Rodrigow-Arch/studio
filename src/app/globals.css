@@ -37,11 +37,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
-    max-width: 480px;
-    margin: 0 auto;
+    @apply bg-slate-50 text-foreground font-body antialiased;
     min-height: 100vh;
-    box-shadow: 0 0 50px rgba(0,0,0,0.05);
   }
 
   /* Esconder o olho nativo dos browsers para não duplicar com o nosso */
@@ -53,6 +50,11 @@
 
 .font-headline {
   font-family: 'Playfair Display', serif;
+}
+
+/* Contentor principal da App para PC e Mobile */
+.app-container {
+  @apply w-full max-w-full md:max-w-2xl lg:max-w-3xl mx-auto bg-white min-h-screen shadow-2xl shadow-black/5 relative border-x border-black/5;
 }
 
 /* Efeitos Globais de Interação */

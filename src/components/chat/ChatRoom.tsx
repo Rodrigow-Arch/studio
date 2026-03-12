@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -331,7 +330,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const isOnline = otherProfile ? isUserOnline(otherProfile.lastActive) : false;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
+    <div className="absolute inset-0 z-[60] bg-background flex flex-col w-full h-full">
       <header className="p-1 border-b bg-white flex items-center justify-between shrink-0">
         <div className="flex items-center gap-0.5 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 shrink-0"><ArrowLeft className="w-4 h-4" /></Button>
