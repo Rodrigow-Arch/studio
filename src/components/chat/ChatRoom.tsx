@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -387,10 +388,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
                       O chat será eliminado e o post voltará a estar visível para que outros vizinhos possam ajudar.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter className="flex-row gap-2">
-                    <AlertDialogCancel className="flex-1 rounded-xl h-9">Não</AlertDialogCancel>
+                  <AlertDialogFooter className="flex-row gap-2 mt-2">
+                    <AlertDialogCancel className="flex-1 rounded-xl h-9 mt-0">Não</AlertDialogCancel>
                     <AlertDialogAction 
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-9"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-9 mt-0"
                       onClick={handleCancelHelp}
                     >
                       Sim, Cancelar

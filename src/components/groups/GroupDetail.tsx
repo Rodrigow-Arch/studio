@@ -233,9 +233,9 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                     Esta ação é irreversível. Todas as tarefas e dados deste grupo serão perdidos.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="flex-row gap-2">
-                  <AlertDialogCancel className="flex-1 rounded-xl">Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteGroup} className="flex-1 bg-destructive hover:bg-destructive/90 rounded-xl">
+                <AlertDialogFooter className="flex-row gap-2 mt-2">
+                  <AlertDialogCancel className="flex-1 rounded-xl mt-0">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteGroup} className="flex-1 bg-destructive hover:bg-destructive/90 rounded-xl mt-0">
                     Apagar
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -437,11 +437,11 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                                   Tens a certeza que queres remover {profile.fullName} deste grupo?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <AlertDialogFooter className="flex-row gap-2">
-                                <AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel>
+                              <AlertDialogFooter className="flex-row gap-2 mt-2">
+                                <AlertDialogCancel className="flex-1 rounded-xl mt-0">Não</AlertDialogCancel>
                                 <AlertDialogAction 
                                   onClick={() => handleRemoveMember(profile.id)} 
-                                  className="flex-1 bg-destructive hover:bg-destructive/90 rounded-xl"
+                                  className="flex-1 bg-destructive hover:bg-destructive/90 rounded-xl mt-0"
                                 >
                                   Sim, Remover
                                 </AlertDialogAction>
