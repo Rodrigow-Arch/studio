@@ -88,11 +88,5 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.raterId == request.auth.uid;
     }
-
-    match /denuncias/{reportId} {
-      allow get: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow list: if false; // Only admin via console
-    }
   }
 }

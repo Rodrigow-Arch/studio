@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -7,10 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, 
-  Wallet, Award, Flag, Lock, ShieldCheck, AlertTriangle, Zap, 
+  Wallet, ShieldCheck, Lock, Zap, 
   ChevronDown, ChevronUp 
 } from "lucide-react";
-import { calculateDistance } from "@/lib/geo";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,6 @@ import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } 
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
-import ReportModal from '../security/ReportModal';
 import SOSRequirementModal from '../security/SOSRequirementModal';
 import { filterProfanity } from '@/lib/utils';
 
@@ -32,7 +31,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [showAllComments, setShowAllComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
-  const [isReportOpen, setIsReportOpen] = React.useState(false);
   const [isSOSModalOpen, setIsSOSModalOpen] = React.useState(false);
 
   const currentUserDocRef = useMemoFirebase(() => {
@@ -196,17 +194,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
             </div>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8 shrink-0 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 rounded-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsReportOpen(true);
-          }}
-        >
-          <Flag className="w-4 h-4" />
-        </Button>
       </CardHeader>
       
       <CardContent className="px-4 py-2 space-y-3">
@@ -315,13 +302,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           </div>
         )}
       </CardFooter>
-
-      <ReportModal 
-        isOpen={isReportOpen} 
-        onClose={() => setIsReportOpen(false)} 
-        reportedUserId={post.authorId}
-        postId={post.id}
-      />
 
       {currentUserProfile && (
         <SOSRequirementModal 

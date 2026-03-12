@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, CheckCircle2, XCircle, Lock } from "lucide-react";
+import { CheckCircle2, XCircle, Lock } from "lucide-react";
 import { differenceInDays } from "date-fns";
 
 interface SOSRequirementModalProps {
@@ -34,11 +34,6 @@ export default function SOSRequirementModal({ isOpen, onClose, userProfile }: SO
       label: "Mínimo 2 ajudas concluídas", 
       isMet: userProfile.helpsGiven >= 2, 
       current: `${userProfile.helpsGiven} / 2 concluídas` 
-    },
-    { 
-      label: "Perfil sem denúncias", 
-      isMet: (userProfile.reportCount || 0) === 0, 
-      current: (userProfile.reportCount || 0) > 0 ? "Com denúncias" : "Limpo ✅" 
     }
   ];
 

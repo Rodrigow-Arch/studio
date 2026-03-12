@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, ShieldCheck, Scale } from "lucide-react";
+import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -131,7 +131,6 @@ export default function AuthFlow() {
         isPhoneVerified: true, 
         points: 0, 
         helpsGiven: 0,
-        reportCount: 0,
         sharesMade: 0,
         averageRating: 0,
         totalRatings: 0,
@@ -429,7 +428,7 @@ export default function AuthFlow() {
                   <CardTitle>Passo 6: Foto de Perfil</CardTitle>
                   <CardDescription>Mostra à comunidade quem tu és. (Opcional)</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 flex flex-col items-center">
+                <CardContent className="space-6 flex flex-col items-center">
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <Avatar className="w-28 h-28 border-4 border-primary/10 shadow-lg">
                       {formData.photoUrl && <AvatarImage src={formData.photoUrl} className="object-cover" />}
@@ -443,7 +442,7 @@ export default function AuthFlow() {
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                   
-                  <div className="w-full space-y-2">
+                  <div className="w-full space-y-2 pt-4">
                     <Button variant="outline" className="w-full rounded-xl text-xs h-9" onClick={() => fileInputRef.current?.click()}>
                       Selecionar Imagem
                     </Button>

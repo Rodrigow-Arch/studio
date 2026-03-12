@@ -10,24 +10,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, 
-  Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
-  ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
-  Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
-  Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon,
-  Settings, Trash, AlertTriangle, FileText, Facebook, Twitter
+  MapPin, Award, ThumbsUp, LogOut, MessageCircle, ArrowLeft, Save, 
+  Sparkles, User as UserIcon, CalendarDays,
+  Send, MessageSquareQuote, ChevronDown, ChevronUp,
+  Settings, Trash, AlertTriangle, FileText, Instagram, Youtube, Facebook, Twitter, Globe, Link as LinkIcon, Plus, Trash2, ShieldCheck, X
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth, useCollection } from '@/firebase';
-import { doc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, limit, writeBatch, deleteDoc } from 'firebase/firestore';
-import { signOut, deleteUser } from 'firebase/auth';
+import { doc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, limit, writeBatch } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { useToast } from "@/hooks/use-toast";
 import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
-import ReportModal from '../security/ReportModal';
 import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import ImageCropper from '@/components/profile/ImageCropper';
@@ -59,7 +56,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   const [postCount, setPostCount] = React.useState(0);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
-  const [isReportOpen, setIsReportOpen] = React.useState(false);
   
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
   const [cropAspect, setCropAspect] = React.useState(1);
@@ -353,9 +349,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
   const trustLevel = getTrustLevel(userProfile.points || 0);
   
-  const accountAge = differenceInDays(new Date(), new Date(userProfile.joinedTimestamp));
-  const isSOSVerified = accountAge >= 30 && userProfile.points >= 50 && userProfile.helpsGiven >= 2 && (userProfile.reportCount || 0) === 0;
-
   const joinDateFormatted = userProfile.joinedTimestamp 
     ? format(new Date(userProfile.joinedTimestamp), "'Membro desde' MMMM 'de' yyyy", { locale: pt })
     : '';
@@ -395,16 +388,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
             )}
          </div>
          <div className="absolute top-4 right-4 flex gap-2 z-10">
-            {!isOwnProfile && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="bg-white/20 text-white hover:bg-primary hover:text-white rounded-full active:scale-90 transition-all border border-white/10"
-                onClick={() => setIsReportOpen(true)}
-              >
-                <Flag className="w-5 h-5" />
-              </Button>
-            )}
             {isOwnProfile && (
               <Button 
                 variant="ghost" 
@@ -583,12 +566,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         )}
       </div>
 
-      <ReportModal 
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-        reportedUserId={targetUid}
-      />
-
       <LegalModal 
         isOpen={legalModal.isOpen} 
         type={legalModal.type} 
@@ -653,7 +630,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
              <div className="p-6 space-y-8 pb-24">
                 <div className="space-y-6">
                   <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2 flex items-center justify-between">
-                    Banner e Foto de Perfil <Camera className="w-4 h-4" />
+                    Banner e Foto de Perfil <UserIcon className="w-4 h-4" />
                   </h3>
                   
                   <div className="flex flex-col gap-6">
@@ -662,7 +639,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                       <div className="h-32 rounded-2xl bg-secondary relative overflow-hidden group cursor-pointer border-2 border-dashed border-muted-foreground/20" onClick={() => bannerInputRef.current?.click()}>
                         {editData.bannerUrl && <Image src={editData.bannerUrl} alt="Banner" fill className="object-cover" />}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Camera className="text-white w-6 h-6" />
+                          <Settings className="text-white w-6 h-6" />
                         </div>
                       </div>
                       <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} />
@@ -677,7 +654,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                           </AvatarFallback>
                         </Avatar>
                         <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Camera className="text-white w-6 h-6" />
+                          <Settings className="text-white w-6 h-6" />
                         </div>
                       </div>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'photo')} />
