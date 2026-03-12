@@ -361,7 +361,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-full bg-background">
-      <div className="h-40 relative overflow-hidden bg-primary">
+      <div className="h-40 relative overflow-hidden bg-primary shrink-0">
          {userProfile.bannerUrl ? (
            <Image 
              src={userProfile.bannerUrl} 
@@ -401,7 +401,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
          </div>
       </div>
 
-      <div className="px-6 -mt-16 space-y-6 pb-24 relative z-10">
+      <div className="px-6 -mt-16 space-y-6 pb-32 relative z-10">
         <div className="flex flex-col items-center text-center space-y-3">
           <Avatar className="w-28 h-28 border-4 border-white shadow-xl hover:scale-105 transition-transform duration-300">
             {userProfile.photoUrl && <AvatarImage src={userProfile.photoUrl} className="object-cover" />}

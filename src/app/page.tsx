@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -113,7 +114,7 @@ export default function Home() {
     <div className="app-container flex flex-col h-screen overflow-hidden">
       {!showNotifications && <Header onNotificationClick={() => setShowNotifications(true)} />}
       
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
         {renderContent()}
       </div>
 
@@ -127,10 +128,10 @@ export default function Home() {
         setViewingUserId(null);
       }} />
 
-      {/* Overlay de Perfil: Adaptável para PC */}
+      {/* Overlay de Perfil: Ajustado para permitir scroll interno */}
       {viewingUserId && (
         <div className="fixed inset-0 z-[100] bg-background md:bg-black/40 flex justify-center items-center">
-          <div className="w-full h-full md:max-w-2xl lg:max-w-3xl md:h-[90vh] md:rounded-3xl overflow-hidden shadow-2xl relative bg-white">
+          <div className="w-full h-full md:max-w-2xl lg:max-w-3xl md:h-[90vh] md:rounded-3xl overflow-y-auto scrollbar-hide shadow-2xl relative bg-white">
             <ProfilePage 
               userId={viewingUserId} 
               onBack={() => setViewingUserId(null)} 
