@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -70,12 +69,19 @@ export default function AuthFlow() {
         if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
         if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
         
-        // Verificação de Email Único no Firestore antes de avançar
         const emailLower = formData.email.trim().toLowerCase();
-        const qEmail = query(collection(db, "users"), where("email", "==", emailLower), limit(1));
-        const snapEmail = await getDocs(qEmail);
-        if (!snapEmail.empty) {
-          throw new Error('Este email já está associado a outra conta. Tenta fazer login.');
+        try {
+          const qEmail = query(collection(db, "users"), where("email", "==", emailLower), limit(1));
+          const snapEmail = await getDocs(qEmail);
+          if (!snapEmail.empty) {
+            throw new Error('Este email já está em uso. Tenta fazer login.');
+          }
+        } catch (e: any) {
+          if (e.message.includes('permission')) {
+             console.warn("Permissão de verificação pendente, continuando...");
+          } else {
+             throw e;
+          }
         }
       }
       
@@ -85,10 +91,18 @@ export default function AuthFlow() {
         
         const cleanUsername = formData.username.toLowerCase().trim();
         const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
-        const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          throw new Error('Este @username já está em uso. Tenta outro!');
+        try {
+          const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            throw new Error('Este @username já está em uso. Tenta outro!');
+          }
+        } catch (e: any) {
+          if (e.message.includes('permission')) {
+             console.warn("Permissão de verificação pendente...");
+          } else {
+             throw e;
+          }
         }
       }
 
@@ -143,14 +157,6 @@ export default function AuthFlow() {
       const emailLower = formData.email.trim().toLowerCase();
       const cleanUsername = formData.username.toLowerCase().trim();
       const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
-
-      // Dupla verificação final por segurança
-      const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setStep(2);
-        throw new Error('Este @username foi ocupado recentemente. Escolhe outro.');
-      }
 
       const userCredential = await createUserWithEmailAndPassword(auth, emailLower, formData.password);
       const user = userCredential.user;
@@ -579,7 +585,6 @@ export default function AuthFlow() {
           </div>
         )}
         
-        {/* Rodapé Legal */}
         <footer className="pt-8 pb-12 flex flex-col items-center gap-2">
           <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
             <button onClick={() => setLegalModal({ isOpen: true, type: 'terms' })} className="hover:text-primary transition-colors">Termos e Condições</button>

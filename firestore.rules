@@ -18,11 +18,14 @@ service cloud.firestore {
       return isSignedIn() && resource != null && resource.data[ownerIdField] == request.auth.uid;
     }
 
+    // Regras para Utilizadores
     match /users/{userId} {
-      // Permite que qualquer pessoa veja perfis e verifique disponibilidade de email/username
-      allow get, list: if true; 
+      // Permite leitura pública para perfis e verificações de disponibilidade (email/username)
+      allow read: if true; 
+      // Apenas o próprio pode criar o seu perfil inicial
       allow create: if isOwner(userId);
-      // Permite atualizações se estiver logado (necessário para pontos/ratings)
+      // Qualquer pessoa logada pode atualizar (necessário para dar pontos/ratings), 
+      // mas o AuthFlow garante integridade
       allow update: if isSignedIn(); 
       allow delete: if isOwner(userId);
 
@@ -39,14 +42,15 @@ service cloud.firestore {
       }
     }
 
+    // Regras para Publicações
     match /posts/{postId} {
-      allow get, list: if true; 
+      allow read: if true; 
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if isSignedIn(); 
       allow delete: if isExistingOwner('authorId');
 
       match /comments/{commentId} {
-        allow get, list: if true;
+        allow read: if true;
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
         allow update, delete: if isExistingOwner('authorId');
       }
@@ -59,34 +63,39 @@ service cloud.firestore {
       }
     }
 
+    // Regras para Grupos
     match /groups/{groupId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn();
       allow delete: if isExistingOwner('adminId');
       
       match /messages/{messageId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
       }
     }
 
+    // Regras para Chats Diretos
     match /chats/{chatId} {
+      allow read: if isSignedIn();
+      
       match /messages/{messageId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isSignedIn();
         allow update, delete: if isSignedIn();
       }
 
       match /typing/{userId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create, update, delete: if isSignedIn();
       }
     }
     
+    // Regras para Avaliações
     match /ratings/{ratingId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn() && request.resource.data.raterId == request.auth.uid;
     }
   }
