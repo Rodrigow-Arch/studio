@@ -288,7 +288,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           <div className="pt-6 border-t">
             <Button 
               variant="outline" 
-              className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-accent active:scale-95 transition-all rounded-2xl h-12 font-bold gap-2" 
+              className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-primary active:text-white active:scale-95 transition-all rounded-2xl h-12 font-bold gap-2" 
               onClick={() => setIsReportOpen(true)}
             >
               <Flag className="w-4 h-4" /> Denunciar {userProfile.fullName.split(' ')[0]}
@@ -313,7 +313,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         reportedUserId={targetUid}
       />
 
-      {/* GUIA DE PONTOS TRANSPARENTE */}
       {showPointsGuide && (
         <div className="fixed inset-0 z-[120] bg-white animate-in slide-in-from-bottom duration-300 flex flex-col">
           <header className="p-4 border-b flex items-center justify-between shrink-0">

@@ -156,40 +156,43 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
-      <CardHeader className="p-4 flex flex-row items-center justify-between">
+      <CardHeader className="p-4 flex flex-row items-center justify-between gap-2">
         <div 
-          className="flex flex-row items-center gap-3 cursor-pointer group"
+          className="flex flex-row items-center gap-2 min-w-0 flex-1 cursor-pointer group"
           onClick={() => onProfileClick(post.authorId)}
         >
-          <Avatar className="w-10 h-10 transition-transform group-hover:scale-110 duration-300 shadow-sm">
+          <Avatar className="w-9 h-9 shrink-0 transition-transform group-hover:scale-110 duration-300 shadow-sm">
             {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
             <AvatarFallback className="text-white font-bold" style={{ backgroundColor: post.authorAvatarColor }}>
               {post.authorAvatarLetter}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm truncate group-hover:text-primary transition-colors">{post.authorUsername}</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="font-bold text-xs truncate max-w-[120px] group-hover:text-primary transition-colors">{post.authorUsername}</span>
               {trustLevel && (
-                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[8px] font-black uppercase`}>
+                <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase shrink-0`}>
                   {trustLevel.icon} {trustLevel.label}
                 </div>
               )}
-              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal transition-all ${typeColors[post.type] || ''}`}>
+              <Badge variant="outline" className={`text-[9px] py-0 px-1 h-3.5 font-normal shrink-0 ${typeColors[post.type] || ''}`}>
                 {post.type}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {post.zone}, {distance}km</span>
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {post.timestamp ? formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: pt }) : ''}</span>
+            <div className="flex items-center gap-2 text-[9px] text-muted-foreground mt-0.5">
+              <span className="flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5" /> {post.zone}</span>
+              <span className="flex items-center gap-0.5 shrink-0"><Clock className="w-2.5 h-2.5" /> {post.timestamp ? formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: pt }) : ''}</span>
             </div>
           </div>
         </div>
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 text-muted-foreground/50 hover:text-destructive"
-          onClick={() => setIsReportOpen(true)}
+          className="h-8 w-8 shrink-0 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 rounded-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsReportOpen(true);
+          }}
         >
           <Flag className="w-4 h-4" />
         </Button>
