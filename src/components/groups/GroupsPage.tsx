@@ -50,10 +50,10 @@ export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
       <div className="flex items-center justify-between">
         <h2 className="font-headline text-2xl text-primary">Grupos</h2>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowJoin(true)} className="rounded-full h-8 text-[11px] px-3">
+          <Button size="sm" variant="outline" onClick={() => setShowJoin(true)} className="rounded-full h-8 text-[11px] px-3 active:scale-90 transition-transform">
             <LogIn className="w-3 h-3 mr-1" /> Entrar
           </Button>
-          <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full h-8 text-[11px] px-3">
+          <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full h-8 text-[11px] px-3 active:scale-90 transition-transform">
             <Plus className="w-3 h-3 mr-1" /> Criar
           </Button>
         </div>
@@ -65,7 +65,7 @@ export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
           { icon: Users, label: 'Família', color: 'bg-green-50 text-green-600 border-green-100' },
           { icon: BookOpen, label: 'Outros', color: 'bg-purple-50 text-purple-600 border-purple-100' },
         ].map(cat => (
-          <div key={cat.label} className={`p-3 rounded-2xl ${cat.color} flex flex-col items-center gap-1 border text-center shadow-sm`}>
+          <div key={cat.label} className={`p-3 rounded-2xl ${cat.color} flex flex-col items-center gap-1 border text-center shadow-sm hover:scale-105 transition-transform cursor-default`}>
             <cat.icon className="w-5 h-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">{cat.label}</span>
           </div>
@@ -80,7 +80,7 @@ export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
             {[1, 2, 3].map(i => <div key={i} className="h-20 bg-secondary/30 animate-pulse rounded-2xl" />)}
           </div>
         ) : !groups || groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-secondary/10 rounded-3xl border border-dashed">
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-secondary/10 rounded-3xl border border-dashed animate-in zoom-in-95">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
               <Users className="w-8 h-8 text-muted" />
             </div>
@@ -89,21 +89,22 @@ export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
               <p className="text-xs text-muted-foreground px-10">Cria um grupo ou pede um código a um vizinho para entrar.</p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowJoin(true)}>Entrar num Grupo</Button>
-              <Button size="sm" onClick={() => setShowCreate(true)}>Criar Grupo</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowJoin(true)} className="active:scale-95">Entrar num Grupo</Button>
+              <Button size="sm" onClick={() => setShowCreate(true)} className="active:scale-95">Criar Grupo</Button>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {groups.map(group => (
+            {groups.map((group, idx) => (
               <Card 
                 key={group.id} 
-                className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] animate-in fade-in slide-in-from-bottom-2"
+                style={{ animationDelay: `${idx * 100}ms` }}
                 onClick={() => setSelectedGroupId(group.id)}
               >
                 <CardContent className="p-0">
                   <div className="flex items-center p-4 gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                       <Hash className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -112,11 +113,11 @@ export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
                         <Users className="w-3 h-3" /> {group.memberIds?.length || 0} membros • {group.type}
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
                   <div className="px-4 py-2 bg-secondary/20 flex items-center justify-between">
                     <span className="text-[9px] font-bold text-primary/60 uppercase">Código: {group.inviteCode}</span>
-                    <span className="text-[9px] text-muted-foreground">Ver tarefas</span>
+                    <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">Ver tarefas</span>
                   </div>
                 </CardContent>
               </Card>

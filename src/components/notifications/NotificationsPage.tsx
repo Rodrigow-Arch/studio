@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -102,42 +103,48 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
   };
 
   return (
-    <div className="animate-in slide-in-from-right-full duration-300 h-full bg-background flex flex-col">
-      <div className="p-4 border-b flex items-center justify-between bg-white">
+    <div className="animate-in slide-in-from-right-full duration-500 h-full bg-background flex flex-col">
+      <div className="p-4 border-b flex items-center justify-between bg-white shadow-sm relative z-10">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onClose}><ArrowLeft className="w-5 h-5" /></Button>
-          <h2 className="font-headline text-xl">Notificações</h2>
+          <Button variant="ghost" size="icon" className="active:scale-90" onClick={onClose}><ArrowLeft className="w-5 h-5" /></Button>
+          <h2 className="font-headline text-xl text-primary">Notificações</h2>
         </div>
-        <Button variant="link" size="sm" onClick={markAllRead}>Lidas</Button>
+        <Button variant="link" size="sm" className="font-bold text-xs" onClick={markAllRead}>Marcar todas lidas</Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-20">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-20 relative">
         {!notifications || notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-2 opacity-50">
-            <CheckCircle2 className="w-12 h-12 text-muted" />
-            <p className="text-sm">Tudo em dia!</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-secondary/30 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-muted" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">Tudo em dia por aqui!</p>
           </div>
         ) : (
-          notifications.map(notif => (
+          notifications.map((notif, idx) => (
             <div 
               key={notif.id} 
-              className={`p-4 rounded-2xl flex flex-col gap-3 border transition-colors cursor-pointer ${notif.isRead ? 'bg-white opacity-60' : 'bg-white border-primary/20 shadow-sm'}`}
+              className={`p-4 rounded-2xl flex flex-col gap-3 border transition-all cursor-pointer active:scale-[0.98] animate-in fade-in slide-in-from-right-4 ${notif.isRead ? 'bg-white opacity-60' : 'bg-white border-primary/20 shadow-sm'}`}
+              style={{ animationDelay: `${idx * 50}ms` }}
               onClick={() => handleNotificationClick(notif)}
             >
               <div className="flex gap-3">
-                <div className="mt-1">{getIcon(notif.type)}</div>
+                <div className="mt-1 p-2 bg-secondary/20 rounded-xl">{getIcon(notif.type)}</div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-tight">{notif.message}</p>
-                  <span className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notif.timestamp), { addSuffix: true, locale: pt })}</span>
+                  <p className={`text-sm leading-tight ${notif.isRead ? 'font-normal' : 'font-bold'}`}>{notif.message}</p>
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    {formatDistanceToNow(new Date(notif.timestamp), { addSuffix: true, locale: pt })}
+                  </span>
                 </div>
+                {!notif.isRead && <div className="w-2 h-2 bg-primary rounded-full mt-2 animate-pulse" />}
               </div>
 
               {notif.type === 'application' && !notif.accepted && (
                 <div className="flex gap-2 pt-2" onClick={e => e.stopPropagation()}>
-                  <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90" onClick={() => handleAccept(notif)}>
+                  <Button size="sm" className="flex-1 h-8 text-[11px] bg-accent hover:bg-accent/90 active:scale-95 transition-transform" onClick={() => handleAccept(notif)}>
                     <UserCheck className="w-3 h-3 mr-1" /> Candidatá-lo/a
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => handleReject(notif)}>
+                  <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] text-destructive border-destructive/20 hover:bg-destructive/5 active:scale-95 transition-transform" onClick={() => handleReject(notif)}>
                     <X className="w-3 h-3 mr-1" /> Cancelar
                   </Button>
                 </div>

@@ -18,8 +18,6 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
   const db = useFirestore();
   const [activeChat, setActiveChat] = React.useState<any | null>(null);
 
-  // Filter only active chats ('em curso'). 
-  // Once 'resolvido', the chat disappears from the list immediately as requested.
   const chatsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -30,7 +28,6 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
 
   const { data: allActivePosts, isLoading } = useCollection(chatsQuery);
 
-  // Busca notificações de mensagens não lidas para marcar na lista
   const unreadNotifsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -58,7 +55,7 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-6 animate-in fade-in duration-300">
       <h2 className="font-headline text-2xl text-primary">Conversas</h2>
       
       {isLoading ? (
@@ -66,7 +63,7 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
           {[1,2,3].map(i => <div key={i} className="h-16 bg-secondary/30 animate-pulse rounded-2xl" />)}
         </div>
       ) : filteredChats.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 animate-in zoom-in-95">
           <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center">
             <MessageCircle className="w-10 h-10 text-muted-foreground" />
           </div>
@@ -77,17 +74,16 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredChats.map(post => {
+          {filteredChats.map((post, idx) => {
             const isAuthor = post.authorId === user?.uid;
             const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
-            
-            // Conta notificações não lidas específicas para este post
             const unreadCount = unreadNotifs?.filter(n => n.postId === post.id).length || 0;
             
             return (
               <div 
                 key={post.id} 
-                className={`flex items-center gap-3 p-3 border rounded-2xl cursor-pointer hover:shadow-sm transition-all ${unreadCount > 0 ? 'bg-primary/5 border-primary/20' : 'bg-white'}`}
+                className={`flex items-center gap-3 p-3 border rounded-2xl cursor-pointer hover:shadow-md transition-all active:scale-[0.98] animate-in fade-in slide-in-from-left-2 ${unreadCount > 0 ? 'bg-primary/5 border-primary/20' : 'bg-white'}`}
+                style={{ animationDelay: `${idx * 100}ms` }}
                 onClick={() => setActiveChat(post)}
               >
                 <div className="relative">
@@ -95,7 +91,7 @@ export default function ChatList({ onProfileClick }: ChatListProps) {
                     <AvatarFallback className="text-white font-bold">{otherName.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white border-2 border-white">
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white border-2 border-white animate-bounce">
                       {unreadCount}
                     </span>
                   )}
