@@ -258,9 +258,13 @@ export default function AuthFlow() {
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-all active:scale-90"
                   >
-                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showLoginPassword ? (
+                      <EyeOff key="eye-off" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
+                    ) : (
+                      <Eye key="eye-on" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -301,9 +305,13 @@ export default function AuthFlow() {
                       <button
                         type="button"
                         onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-all active:scale-90"
                       >
-                        {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showRegisterPassword ? (
+                          <EyeOff key="reg-eye-off" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
+                        ) : (
+                          <Eye key="reg-eye-on" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
+                        )}
                       </button>
                     </div>
                     <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
