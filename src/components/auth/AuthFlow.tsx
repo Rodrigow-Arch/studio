@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -77,19 +78,11 @@ export default function AuthFlow() {
         const cleanUsername = formData.username.toLowerCase().trim();
         const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
         
-        try {
-          // Verificação de @username duplicado
-          const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            throw new Error(`O utilizador ${finalUsername} já existe. Tenta outro!`);
-          }
-        } catch (e: any) {
-          if (e.message.includes('permission') || e.code === 'permission-denied') {
-            console.warn("Segurança: Verificação de username ignorada devido a permissões.");
-          } else {
-            throw e;
-          }
+        // Verificação de @username duplicado
+        const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          throw new Error(`Já existe um utilizador com o username ${finalUsername}. Por favor, troca o teu username.`);
         }
       }
 
