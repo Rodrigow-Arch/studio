@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +70,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         await setDoc(typingDocRef, { isTyping: false }, { merge: true });
       }
     } catch (e) {
-      // Ignora erros de permissão silenciosamente para o typing
+      // Ignore errors for typing status
     }
   };
 
@@ -121,17 +121,20 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   };
 
   const finalizeResolution = async () => {
-    if (!user || !post.helperId || isResolving) return;
+    if (!user || !post.helperId || isResolving) {
+      console.warn("Missing data for resolution", { user: !!user, helperId: post.helperId, isResolving });
+      return;
+    }
     setIsResolving(true);
     
     try {
       const batch = writeBatch(db);
       
-      // 1. Marcar post como resolvido
+      // 1. Mark post as resolved
       const postRef = doc(db, 'posts', post.id);
       batch.update(postRef, { status: 'resolvido' });
 
-      // 2. Criar a avaliação
+      // 2. Create the rating
       const ratingRef = doc(collection(db, 'ratings'));
       batch.set(ratingRef, {
         id: ratingRef.id,
@@ -144,7 +147,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         timestamp: new Date().toISOString()
       });
 
-      // 3. Obter dados atuais do ajudante para atualizar média
+      // 3. Update helper profile stats
       const helperRef = doc(db, 'users', post.helperId);
       const helperSnap = await getDoc(helperRef);
       const helperData = helperSnap.data();
@@ -155,14 +158,14 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
         
         batch.update(helperRef, {
-          points: increment(50), // Ganha 50 pontos por ajudar
+          points: increment(50),
           helpsGiven: increment(1),
           totalRatings: totalRatings,
           averageRating: newAverage
         });
       }
 
-      // 4. Limpar o chat (mensagens e typing)
+      // 4. Clean up chat (messages and typing)
       const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
       messagesSnap.forEach(d => batch.delete(d.ref));
       
@@ -173,7 +176,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
       toast({
         title: "Problema Resolvido!",
-        description: "Ajudaste a comunidade e o ajudante recebeu os seus pontos.",
+        description: "A ajuda foi concluída e o ajudante recebeu os pontos.",
       });
       setIsRatingOpen(false);
       onBack();
@@ -297,11 +300,11 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       </div>
 
       <Dialog open={isRatingOpen} onOpenChange={setIsRatingOpen}>
-        <DialogContent className="max-w-[400px] rounded-3xl" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-[400px] rounded-3xl z-[100]" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
             <DialogDescription>
-              A tua avaliação ajuda a manter a qualidade e confiança na comunidade.
+              A tua avaliação ajuda a manter a confiança na comunidade.
             </DialogDescription>
           </DialogHeader>
           
@@ -330,9 +333,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           </div>
 
           <DialogFooter className="flex-row gap-2">
-            <Button variant="ghost" className="flex-1" onClick={() => setIsRatingOpen(false)}>Ainda não</Button>
+            <Button variant="ghost" className="flex-1" onClick={() => setIsRatingOpen(false)}>Cancelar</Button>
             <Button className="flex-1 bg-accent hover:bg-accent/90 text-white font-bold" onClick={finalizeResolution} disabled={isResolving}>
-              {isResolving ? "A guardar..." : "Confirmar e Resolver"}
+              {isResolving ? "A guardar..." : "Concluir e Pontuar"}
             </Button>
           </DialogFooter>
         </DialogContent>
