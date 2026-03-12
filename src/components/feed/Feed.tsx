@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutGrid, Globe } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 
 interface FeedProps {
   initialShowCreate?: boolean;
@@ -21,8 +21,13 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
   const [showCreate, setShowCreate] = React.useState(initialShowCreate);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
 
+  // Filtrar apenas posts públicos (onde groupId é nulo ou isPublic é true)
   const postsQuery = useMemoFirebase(() => {
-    return query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+    return query(
+      collection(db, 'posts'), 
+      where('groupId', '==', null), // Apenas posts fora de grupos
+      orderBy('timestamp', 'desc')
+    );
   }, [db]);
 
   const { data: posts, isLoading } = useCollection(postsQuery);
@@ -32,9 +37,6 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
     
     const now = new Date();
     
-    // Filter logic: 
-    // 1. Filter by category
-    // 2. Hide resolved posts that have already expired (after 24h)
     return posts.filter(p => {
       const matchesType = filterType === 'Tudo' || p.type === filterType;
       
@@ -50,18 +52,25 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-8 w-24 bg-secondary/50 rounded-full animate-pulse" />
+          <div className="h-8 w-20 bg-secondary/50 rounded-full animate-pulse" />
+        </div>
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-32 bg-secondary/50 animate-pulse rounded-2xl" />
+          <div key={i} className="h-40 bg-secondary/30 animate-pulse rounded-3xl" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <h2 className="font-headline text-2xl text-primary">Comunidade</h2>
-        <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full h-10 w-10 p-0">
+        <div className="flex items-center gap-2">
+          <Globe className="w-6 h-6 text-primary" />
+          <h2 className="font-headline text-2xl text-primary">Rede Pública</h2>
+        </div>
+        <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full h-10 w-10 p-0 shadow-lg shadow-primary/20 transition-transform active:scale-90">
           <Plus className="w-6 h-6" />
         </Button>
       </div>
@@ -71,7 +80,7 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
           <Badge
             key={t}
             variant={filterType === t ? 'default' : 'secondary'}
-            className="cursor-pointer px-4 py-1.5 whitespace-nowrap"
+            className={`cursor-pointer px-5 py-2 whitespace-nowrap rounded-full transition-all ${filterType === t ? 'shadow-md scale-105' : 'opacity-80'}`}
             onClick={() => setFilterType(t)}
           >
             {t}
@@ -86,13 +95,15 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
         }} />
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-4 pb-20">
         {filteredPosts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 px-10">
-            <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center text-3xl">🇵🇹</div>
-            <h3 className="font-medium text-lg">Ainda não há posts na tua zona.</h3>
-            <p className="text-muted-foreground text-sm">Sê o primeiro a conectar-te com os teus vizinhos!</p>
-            <Button onClick={() => setShowCreate(true)}>Publicar Agora</Button>
+          <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 px-10 bg-white rounded-3xl border border-dashed">
+            <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center text-3xl shadow-inner">🇵🇹</div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-lg">Sem publicações públicas</h3>
+              <p className="text-muted-foreground text-xs">Sê o primeiro a conectar-te com os teus vizinhos na rede pública!</p>
+            </div>
+            <Button onClick={() => setShowCreate(true)} className="rounded-full px-8">Publicar Agora</Button>
           </div>
         ) : (
           filteredPosts.map(post => (
