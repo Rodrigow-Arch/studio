@@ -82,7 +82,7 @@ export default function Home() {
 
     switch (activeTab) {
       case 'groups':
-        return <GroupsPage />;
+        return <GroupsPage onProfileClick={handleProfileClick} />;
       case 'messages':
         return <ChatList onProfileClick={handleProfileClick} />;
       case 'profile':

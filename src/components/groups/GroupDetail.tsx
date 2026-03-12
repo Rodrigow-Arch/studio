@@ -37,9 +37,10 @@ import {
 interface GroupDetailProps {
   groupId: string;
   onBack: () => void;
+  onProfileClick: (uid: string) => void;
 }
 
-export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
+export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDetailProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -196,7 +197,7 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
             ) : (
               <div className="space-y-4">
                 {groupTasks.map(task => (
-                  <PostCard key={task.id} post={task} onProfileClick={(uid) => console.log('Profile click', uid)} />
+                  <PostCard key={task.id} post={task} onProfileClick={onProfileClick} />
                 ))}
               </div>
             )}
@@ -221,7 +222,11 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
             ) : (
               <div className="space-y-2">
                 {memberProfiles?.map(profile => (
-                  <div key={profile.id} className="flex items-center justify-between p-3 bg-white border rounded-2xl">
+                  <div 
+                    key={profile.id} 
+                    className="flex items-center justify-between p-3 bg-white border rounded-2xl cursor-pointer hover:bg-secondary/10 transition-colors"
+                    onClick={() => onProfileClick(profile.id)}
+                  >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border" style={{ backgroundColor: profile.avatarColor }}>
                         <AvatarFallback className="text-white font-bold">{profile.avatarLetter}</AvatarFallback>
@@ -257,4 +262,3 @@ export default function GroupDetail({ groupId, onBack }: GroupDetailProps) {
     </div>
   );
 }
-

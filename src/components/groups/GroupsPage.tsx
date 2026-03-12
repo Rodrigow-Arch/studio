@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -10,7 +11,11 @@ import CreateGroup from './CreateGroup';
 import JoinGroup from './JoinGroup';
 import GroupDetail from './GroupDetail';
 
-export default function GroupsPage() {
+interface GroupsPageProps {
+  onProfileClick: (uid: string) => void;
+}
+
+export default function GroupsPage({ onProfileClick }: GroupsPageProps) {
   const { user } = useUser();
   const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(false);
@@ -37,7 +42,7 @@ export default function GroupsPage() {
   }, [rawGroups]);
 
   if (selectedGroupId) {
-    return <GroupDetail groupId={selectedGroupId} onBack={() => setSelectedGroupId(null)} />;
+    return <GroupDetail groupId={selectedGroupId} onBack={() => setSelectedGroupId(null)} onProfileClick={onProfileClick} />;
   }
 
   return (
