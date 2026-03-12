@@ -15,7 +15,7 @@ import {
   ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
   Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
   Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon,
-  Settings, Trash, AlertTriangle, FileText
+  Settings, Trash, AlertTriangle, FileText, Facebook, Twitter
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -336,10 +336,18 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   };
 
   const getSocialIcon = (platform: string) => {
+    const iconClass = "w-5 h-5";
     switch (platform.toLowerCase()) {
-      case 'instagram': return <Instagram className="w-5 h-5" />;
-      case 'youtube': return <Youtube className="w-5 h-5" />;
-      default: return <Globe className="w-5 h-5" />;
+      case 'instagram': return <Instagram className={iconClass} />;
+      case 'youtube': return <Youtube className={iconClass} />;
+      case 'facebook': return <Facebook className={iconClass} />;
+      case 'x': return <Twitter className={iconClass} />;
+      case 'tiktok': return (
+        <svg className={iconClass} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.6-4.12-1.31a6.417 6.417 0 01-1.87-1.56v7.14c0 2.64-.49 5.24-2.11 7.34-1.61 2.09-4.14 3.42-6.72 3.41-2.01.02-3.95-.53-5.63-1.63-1.69-1.11-3.03-2.76-3.83-4.66-.82-1.92-1-4.06-.54-6.11.45-2.07 1.59-3.98 3.23-5.32 1.63-1.34 3.69-2.08 5.81-2.1v4.2c-1.43-.02-2.88.36-4.04 1.21-1.16.85-2 2.13-2.31 3.53-.3 1.41-.04 2.89.74 4.11.77 1.23 2.02 2.14 3.44 2.5 1.43.36 2.95.16 4.25-.56 1.3-.72 2.3-1.95 2.76-3.37.26-.82.38-1.67.36-2.53V.02z"/>
+        </svg>
+      );
+      default: return <Globe className={iconClass} />;
     }
   };
 
@@ -727,6 +735,9 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                           >
                             <option value="Instagram">Instagram</option>
                             <option value="YouTube">YouTube</option>
+                            <option value="TikTok">TikTok</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="X">X (Twitter)</option>
                             <option value="Website">Website</option>
                             <option value="Outro">Outro</option>
                           </select>
