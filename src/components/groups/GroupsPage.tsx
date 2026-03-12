@@ -1,23 +1,22 @@
-
 "use client";
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Shield, BookOpen, ChevronRight, Hash } from "lucide-react";
+import { Plus, Users, Shield, BookOpen, ChevronRight, Hash, LogIn } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import CreateGroup from './CreateGroup';
+import JoinGroup from './JoinGroup';
 import GroupDetail from './GroupDetail';
 
 export default function GroupsPage() {
   const { user } = useUser();
   const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(false);
+  const [showJoin, setShowJoin] = React.useState(false);
   const [selectedGroupId, setSelectedGroupId] = React.useState<string | null>(null);
 
-  // Simplificamos a query para evitar a necessidade de índices compostos manuais.
-  // Filtramos apenas pela participação do utilizador. A ordenação será feita no cliente.
   const groupsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -28,7 +27,6 @@ export default function GroupsPage() {
 
   const { data: rawGroups, isLoading } = useCollection(groupsQuery);
 
-  // Ordenamos os grupos no cliente por timestamp (mais recentes primeiro)
   const groups = React.useMemo(() => {
     if (!rawGroups) return [];
     return [...rawGroups].sort((a, b) => {
@@ -46,9 +44,14 @@ export default function GroupsPage() {
     <div className="p-4 space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <h2 className="font-headline text-2xl text-primary">Grupos</h2>
-        <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full">
-          <Plus className="w-4 h-4 mr-1" /> Criar
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowJoin(true)} className="rounded-full h-8 text-[11px] px-3">
+            <LogIn className="w-3 h-3 mr-1" /> Entrar
+          </Button>
+          <Button size="sm" onClick={() => setShowCreate(true)} className="rounded-full h-8 text-[11px] px-3">
+            <Plus className="w-3 h-3 mr-1" /> Criar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -78,9 +81,12 @@ export default function GroupsPage() {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-bold">Ainda não tens grupos</p>
-              <p className="text-xs text-muted-foreground px-10">Cria um grupo para tarefas privadas com os teus vizinhos ou família.</p>
+              <p className="text-xs text-muted-foreground px-10">Cria um grupo ou pede um código a um vizinho para entrar.</p>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setShowCreate(true)}>Criar Primeiro Grupo</Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowJoin(true)}>Entrar num Grupo</Button>
+              <Button size="sm" onClick={() => setShowCreate(true)}>Criar Grupo</Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -115,6 +121,7 @@ export default function GroupsPage() {
       </div>
 
       {showCreate && <CreateGroup onClose={() => setShowCreate(false)} />}
+      {showJoin && <JoinGroup onClose={() => setShowJoin(false)} />}
     </div>
   );
 }
