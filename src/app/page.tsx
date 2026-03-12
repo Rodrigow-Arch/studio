@@ -32,10 +32,16 @@ export default function Home() {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="bg-primary w-12 h-12 rounded-lg flex items-center justify-center">
-            <span className="text-white font-headline text-2xl">P</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden flex flex-col shadow-xl border border-black/5">
+            <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
+              <span className="text-2xl">🤝</span>
+            </div>
+            <div className="h-[2px] bg-[#fcd116]" />
+            <div className="flex-1 bg-[#ce1126] flex items-center justify-center">
+              <span className="text-white font-headline text-[10px] font-black tracking-tight">PU</span>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">A carregar o teu perfil...</p>
+          <p className="text-sm text-muted-foreground font-medium">A carregar o teu mundo...</p>
         </div>
       </div>
     );

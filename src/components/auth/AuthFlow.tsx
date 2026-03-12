@@ -157,17 +157,30 @@ export default function AuthFlow() {
     setFormData({ ...formData, telefone: res });
   };
 
-  if (mode === 'login') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="font-headline text-4xl text-primary">Portugal Unido</h1>
-            <p className="text-muted-foreground">Bem-vindo de volta à tua comunidade.</p>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-24 h-24 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-black/5 animate-in zoom-in duration-500">
+            <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
+              <span className="text-4xl">🤝</span>
+            </div>
+            <div className="h-[3px] bg-[#fcd116]" />
+            <div className="flex-1 bg-[#ce1126] flex items-center justify-center">
+              <span className="text-white font-headline text-xl font-black tracking-widest">PU</span>
+            </div>
           </div>
-          <Card>
+          <div className="text-center space-y-1">
+            <h1 className="font-headline text-4xl text-primary">Portugal Unido</h1>
+            <p className="text-muted-foreground text-sm font-medium">A tua rede social comunitária.</p>
+          </div>
+        </div>
+
+        {mode === 'login' ? (
+          <Card className="animate-in fade-in slide-in-from-bottom-4 shadow-xl rounded-3xl">
             <CardHeader>
               <CardTitle>Entrar</CardTitle>
+              <CardDescription>Bem-vindo de volta à tua comunidade.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -178,135 +191,127 @@ export default function AuthFlow() {
                 <Label>Palavra-passe</Label>
                 <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               </div>
-              {error && <p className="text-xs text-destructive">{error}</p>}
-              <Button className="w-full" onClick={handleLogin} disabled={loading}>
+              {error && <p className="text-xs text-destructive font-bold">{error}</p>}
+              <Button className="w-full h-12 rounded-2xl font-bold text-md" onClick={handleLogin} disabled={loading}>
                 {loading ? "A entrar..." : "Entrar"}
               </Button>
               <Button variant="link" className="w-full text-xs" onClick={() => setMode('register')}>Não tens conta? Cria uma agora</Button>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    );
-  }
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-center gap-1">
+              <Progress value={(step / 5) * 100} className="h-2 w-32" />
+              <span className="text-xs text-muted-foreground font-black">{step}/5</span>
+            </div>
 
-  return (
-    <div className="flex flex-col min-h-screen p-6 bg-background">
-      <div className="w-full max-w-sm mx-auto space-y-8 py-10">
-        <div className="space-y-2 text-center">
-          <h1 className="font-headline text-3xl text-primary">Portugal Unido</h1>
-          <p className="text-sm text-muted-foreground">Cria a tua conta para ajudar e ser ajudado.</p>
-          <div className="flex items-center justify-center gap-1 pt-2">
-            <Progress value={(step / 5) * 100} className="h-2 w-32" />
-            <span className="text-xs text-muted-foreground font-bold">{step}/5</span>
+            {error && <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-xl border border-destructive/20 animate-in fade-in zoom-in-95 font-bold">{error}</div>}
+
+            {step === 1 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
+                <CardHeader><CardTitle>Passo 1: Credenciais</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="exemplo@mail.pt" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Palavra-passe</Label>
+                    <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Mínimo 6 caracteres" />
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length >= 6 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
+                    </div>
+                  </div>
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 2 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
+                <CardHeader><CardTitle>Passo 2: Identidade</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Nome Completo</Label>
+                    <Input value={formData.name} placeholder="O teu nome" onChange={e => {
+                      const n = e.target.value;
+                      const u = '@' + n.toLowerCase().replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                      setFormData({...formData, name: n, username: u});
+                    }} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome de Utilizador (Username)</Label>
+                    <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+                  </div>
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
+                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 3 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
+                <CardHeader><CardTitle>Passo 3: Nascimento</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Data (DD/MM/AAAA)</Label>
+                    <Input value={formData.dataNasc} placeholder="Ex: 15/05/1995" onChange={e => maskDate(e.target.value)} />
+                    <p className="text-[10px] text-muted-foreground font-medium">Deves ter mais de 18 anos para participar.</p>
+                  </div>
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 4 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl">
+                <CardHeader><CardTitle>Passo 4: Localização</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Distrito</Label>
+                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})}>
+                      <option value="">Selecionar Distrito</option>
+                      {DISTRITOS_PORTUGAL.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Zona / Bairro</Label>
+                    <Input value={formData.zona} placeholder="Ex: Baixa, Campanhã, etc." onChange={e => setFormData({...formData, zona: e.target.value})} />
+                  </div>
+                  <Button variant="outline" className="w-full text-xs h-9 rounded-xl" onClick={useGPS}>
+                    <MapPin className="mr-2 w-3 h-3" /> Usar GPS para precisão
+                  </Button>
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 5 && (
+              <Card className="animate-in fade-in slide-in-from-right-4 shadow-xl rounded-3xl border-primary/20">
+                <CardHeader>
+                  <CardTitle>Passo 5: Contacto</CardTitle>
+                  <CardDescription>O teu número é essencial para verificações de segurança.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Telemóvel (+351)</Label>
+                    <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
+                  </div>
+                  <Button className="w-full h-14 rounded-2xl font-black bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20 uppercase tracking-widest text-xs" onClick={handleCreateAccount} disabled={loading}>
+                    {loading ? "A criar conta..." : "Finalizar e Entrar"} <CheckCircle2 className="ml-2 w-5 h-5" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="text-center pt-2">
+              <Button variant="link" className="text-xs text-muted-foreground" onClick={() => setMode('login')}>
+                Já tens uma conta? Faz login
+              </Button>
+            </div>
           </div>
-        </div>
-
-        {error && <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg border border-destructive/20 animate-in fade-in zoom-in-95">{error}</div>}
-
-        {step === 1 && (
-          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
-            <CardHeader><CardTitle>Passo 1: Credenciais</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="exemplo@mail.pt" />
-              </div>
-              <div className="space-y-2">
-                <Label>Palavra-passe</Label>
-                <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Mínimo 6 caracteres" />
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length >= 6 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
-                </div>
-              </div>
-              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
-            </CardContent>
-          </Card>
         )}
-
-        {step === 2 && (
-          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
-            <CardHeader><CardTitle>Passo 2: Identidade</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome Completo</Label>
-                <Input value={formData.name} placeholder="O teu nome" onChange={e => {
-                  const n = e.target.value;
-                  const u = '@' + n.toLowerCase().replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                  setFormData({...formData, name: n, username: u});
-                }} />
-              </div>
-              <div className="space-y-2">
-                <Label>Nome de Utilizador (Username)</Label>
-                <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-              </div>
-              <Button className="w-full font-bold" onClick={handleNext}>
-                Continuar <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 3 && (
-          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
-            <CardHeader><CardTitle>Passo 3: Nascimento</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Data (DD/MM/AAAA)</Label>
-                <Input value={formData.dataNasc} placeholder="Ex: 15/05/1995" onChange={e => maskDate(e.target.value)} />
-                <p className="text-[10px] text-muted-foreground">Deves ter mais de 18 anos para participar.</p>
-              </div>
-              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 4 && (
-          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md">
-            <CardHeader><CardTitle>Passo 4: Localização</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Distrito</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})}>
-                  <option value="">Selecionar Distrito</option>
-                  {DISTRITOS_PORTUGAL.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Zona / Bairro</Label>
-                <Input value={formData.zona} placeholder="Ex: Baixa, Campanhã, etc." onChange={e => setFormData({...formData, zona: e.target.value})} />
-              </div>
-              <Button variant="outline" className="w-full text-xs h-8" onClick={useGPS}>
-                <MapPin className="mr-2 w-3 h-3" /> Usar GPS para precisão
-              </Button>
-              <Button className="w-full font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 5 && (
-          <Card className="animate-in fade-in slide-in-from-right-4 shadow-md border-primary/20">
-            <CardHeader>
-              <CardTitle>Passo 5: Contacto</CardTitle>
-              <CardDescription>O teu número é essencial para verificações de segurança.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Telemóvel (+351)</Label>
-                <Input value={formData.telefone} placeholder="912 345 678" onChange={e => maskPhone(e.target.value)} />
-              </div>
-              <Button className="w-full font-bold bg-accent hover:bg-accent/90" onClick={handleCreateAccount} disabled={loading}>
-                {loading ? "A criar conta..." : "Finalizar Registo e Entrar"} <CheckCircle2 className="ml-2 w-4 h-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="text-center pt-4">
-           <Button variant="link" className="text-xs text-muted-foreground" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-             {mode === 'login' ? "Não tens conta? Regista-te agora" : "Já tens uma conta? Faz login"}
-           </Button>
-        </div>
       </div>
     </div>
   );
