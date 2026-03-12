@@ -5,10 +5,11 @@ import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
+import { pt } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
@@ -163,12 +164,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         const oldAverage = helperData.averageRating || 0;
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
         
-        // NOVO SISTEMA DE PONTOS
-        let pointsToAward = 20; // Tarefa resolvida: +20 pts
-        if (post.type === 'SOS') pointsToAward += 30; // Resolver SOS: +30 pts
-        if (post.type === 'Partilha') pointsToAward += 10; // Partilha aceite/confirmada: +10 pts
+        let pointsToAward = 20; 
+        if (post.type === 'SOS') pointsToAward += 30;
+        if (post.type === 'Partilha') pointsToAward += 10;
         
-        // Bónus de Avaliação
         if (rating === 5) pointsToAward += 15;
         else if (rating === 4) pointsToAward += 10;
         else if (rating === 3) pointsToAward += 5;
@@ -234,6 +233,31 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     };
   }, [user, chatId, db, post.id]);
 
+  const renderDateSeparator = (currentMsg: any, prevMsg: any) => {
+    const currentDate = new Date(currentMsg.timestamp);
+    if (!prevMsg || !isSameDay(new Date(prevMsg.timestamp), currentDate)) {
+      let dateLabel = '';
+      if (isToday(currentDate)) {
+        dateLabel = `Hoje, ${format(currentDate, "d 'de' MMMM 'de' yyyy", { locale: pt })}`;
+      } else if (isYesterday(currentDate)) {
+        dateLabel = 'Ontem';
+      } else if (differenceInDays(new Date(), currentDate) < 7) {
+        dateLabel = format(currentDate, 'EEEE', { locale: pt });
+      } else {
+        dateLabel = format(currentDate, "d 'de' MMMM 'de' yyyy", { locale: pt });
+      }
+
+      return (
+        <div className="flex justify-center my-6 sticky top-2 z-10 pointer-events-none">
+          <span className="text-[10px] bg-white/90 backdrop-blur-sm border shadow-sm px-4 py-1.5 rounded-full text-muted-foreground font-black uppercase tracking-widest pointer-events-auto">
+            {dateLabel}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
   const trustLevel = otherProfile ? getTrustLevel(otherProfile.points || 0) : null;
 
@@ -290,19 +314,22 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/5">
-        {messages?.map((msg) => {
+        {messages?.map((msg, idx) => {
           const isMe = msg.authorId === user?.uid;
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
-                isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
-              }`}>
-                <p>{msg.text}</p>
-                <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>
-                  {format(new Date(msg.timestamp), 'HH:mm')}
-                </p>
+            <React.Fragment key={msg.id}>
+              {renderDateSeparator(msg, idx > 0 ? messages[idx - 1] : null)}
+              <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
+                  isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
+                }`}>
+                  <p>{msg.text}</p>
+                  <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>
+                    {format(new Date(msg.timestamp), 'HH:mm')}
+                  </p>
+                </div>
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
         
