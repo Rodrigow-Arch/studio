@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -78,7 +77,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     setIsApplying(true);
 
     try {
-      // 1. Criar a candidatura
       const applicationData = {
         postId: post.id,
         postAuthorId: post.authorId,
@@ -92,12 +90,10 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
       await addDoc(collection(db, 'posts', post.id, 'applications'), applicationData);
       
-      // 2. Incrementar contador no post
       await updateDoc(doc(db, 'posts', post.id), {
         candidateCount: increment(1)
       });
 
-      // 3. Enviar notificação para o autor do post
       const notificationData = {
         userId: post.authorId,
         type: 'application',
@@ -126,19 +122,19 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   };
 
   return (
-    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
       <CardHeader className="p-4 flex flex-row items-center gap-3">
         <div 
           className="flex flex-row items-center gap-3 cursor-pointer group"
           onClick={() => onProfileClick(post.authorId)}
         >
-          <Avatar className="w-10 h-10 transition-transform group-hover:scale-105" style={{ backgroundColor: post.authorAvatarColor }}>
+          <Avatar className="w-10 h-10 transition-transform group-hover:scale-110 duration-300 shadow-sm" style={{ backgroundColor: post.authorAvatarColor }}>
             <AvatarFallback className="bg-transparent text-white font-bold">{post.authorAvatarLetter}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm truncate group-hover:text-primary transition-colors">{post.authorUsername}</span>
-              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal ${typeColors[post.type] || ''}`}>
+              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal transition-all ${typeColors[post.type] || ''}`}>
                 {post.type}
               </Badge>
             </div>
@@ -153,9 +149,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       <CardContent className="px-4 py-2 space-y-3">
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.text}</p>
         
-        {/* Exibição da Recompensa (apenas se existir) */}
         {post.paymentAmount > 0 && (
-          <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 p-2.5 rounded-xl w-fit animate-in zoom-in-95">
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 p-2.5 rounded-2xl w-fit animate-in zoom-in-95 duration-500">
             <Wallet className="w-4 h-4 text-primary" />
             <div className="flex flex-col">
               <span className="text-[11px] font-black text-primary uppercase leading-tight">Recompensa: {post.paymentAmount}€</span>
@@ -165,7 +160,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         )}
 
         {post.status !== 'aberto' && (
-           <div className="mt-1 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit">
+           <div className="mt-1 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit animate-pulse">
               {post.status === 'em curso' ? '🟡 Em curso' : '✅ Resolvido'}
            </div>
         )}
@@ -177,7 +172,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 text-[11px] gap-1.5 px-2"
+              className="h-8 text-[11px] gap-1.5 px-2 hover:bg-white/50 rounded-full"
               onClick={() => setShowComments(!showComments)}
             >
               <MessageSquare className="w-4 h-4" /> {post.commentCount || 0}
@@ -191,7 +186,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
             <Button 
               size="sm" 
               variant="default" 
-              className="h-8 px-3 text-[11px] font-bold rounded-full bg-accent hover:bg-accent/90"
+              className="h-8 px-4 text-[11px] font-bold rounded-full bg-accent hover:bg-accent/90 shadow-sm active:scale-90 transition-transform"
               onClick={handleApplyToHelp}
               disabled={isApplying}
             >
@@ -201,19 +196,19 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         </div>
 
         {showComments && (
-          <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="space-y-3">
               {comments?.map((comment) => (
-                <div key={comment.id} className="flex gap-2">
+                <div key={comment.id} className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                   <Avatar 
-                    className="w-6 h-6 shrink-0 cursor-pointer" 
+                    className="w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform" 
                     onClick={() => onProfileClick(comment.authorId)}
                   >
                     <AvatarFallback className="text-[10px] bg-secondary">{comment.authorAvatarLetter}</AvatarFallback>
                   </Avatar>
-                  <div className="bg-white/50 p-2 rounded-2xl flex-1 text-xs">
+                  <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm">
                     <span 
-                      className="font-bold mr-1 cursor-pointer hover:underline"
+                      className="font-bold mr-1 cursor-pointer hover:underline text-primary"
                       onClick={() => onProfileClick(comment.authorId)}
                     >
                       {comment.authorUsername}
@@ -224,16 +219,16 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               ))}
             </div>
             
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center pb-2 px-1">
               <Input 
                 placeholder="Escreve um comentário..." 
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="h-8 text-xs bg-white/50 rounded-full"
+                className="h-8 text-xs bg-white rounded-full border-none shadow-inner"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
               />
-              <Button size="icon" className="h-8 w-8 rounded-full shrink-0" onClick={handleAddComment} disabled={!commentText}>
-                <Send className="w-4 h-4" />
+              <Button size="icon" className="h-8 w-8 rounded-full shrink-0 shadow-md" onClick={handleAddComment} disabled={!commentText}>
+                <Send className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>

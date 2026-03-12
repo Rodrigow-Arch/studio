@@ -49,14 +49,22 @@
   font-family: 'Playfair Display', serif;
 }
 
-.step-transition-enter {
-  opacity: 0;
-  transform: translateX(20px);
+/* Efeitos Globais de Interação */
+button, .interactive-card {
+  @apply transition-all duration-200 active:scale-95 cursor-pointer;
 }
-.step-transition-enter-active {
-  opacity: 1;
-  transform: translateX(0);
-  transition: opacity 300ms, transform 300ms;
+
+button:hover {
+  @apply filter brightness-110;
+}
+
+/* Scrollbar invisível mas funcional */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 input:focus, select:focus, textarea:focus {
