@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, ShieldCheck } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, ShieldCheck, AlertTriangle } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -173,7 +173,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
   const trustLevel = getTrustLevel(userProfile.points || 0);
   
-  // SOS Verification Badge
   const accountAge = differenceInDays(new Date(), new Date(userProfile.joinedTimestamp));
   const isSOSVerified = accountAge >= 30 && userProfile.points >= 50 && userProfile.helpsGiven >= 2 && (userProfile.reportCount || 0) === 0;
 
@@ -271,6 +270,22 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         <div className="pt-4 border-t space-y-4">
           <BadgeGrid earnedBadgeIds={userProfile.earnedBadges || []} />
         </div>
+
+        {/* Botão de Denúncia Dedicado dentro do Perfil */}
+        {!isOwnProfile && (
+          <div className="pt-6 border-t">
+            <Button 
+              variant="outline" 
+              className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 active:scale-95 transition-all rounded-2xl h-12 font-bold gap-2" 
+              onClick={() => setIsReportOpen(true)}
+            >
+              <AlertTriangle className="w-4 h-4" /> Denunciar {userProfile.fullName.split(' ')[0]}
+            </Button>
+            <p className="text-[10px] text-center mt-2 text-muted-foreground italic">
+              A tua denúncia é anónima e ajuda a manter a comunidade segura.
+            </p>
+          </div>
+        )}
 
         {isOwnProfile && (
           <Button 
