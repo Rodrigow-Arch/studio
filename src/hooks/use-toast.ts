@@ -9,7 +9,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // Alterado para 5 segundos (5000ms)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -163,6 +163,9 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+
+  // Iniciar fila de remoção automática para o novo toast
+  addToRemoveQueue(id)
 
   return {
     id: id,

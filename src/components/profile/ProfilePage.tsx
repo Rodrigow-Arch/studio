@@ -19,7 +19,7 @@ import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from "@/hooks/use-toast";
 import { DISTRITOS_PORTUGAL, calculateDistance } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
