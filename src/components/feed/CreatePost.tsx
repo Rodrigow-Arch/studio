@@ -86,7 +86,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
       await addDoc(collection(db, "posts"), postData);
       
       const updateData: any = {
-        points: increment(groupId ? 10 : 15),
         postsCreated: increment(1)
       };
 
@@ -103,7 +102,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
 
       toast({
         title: groupId ? "Tarefa criada!" : "Publicado!",
-        description: `Ganhaste ${groupId ? 10 : 15} pontos por participar na comunidade.`,
+        description: `A tua publicação foi partilhada com a comunidade.`,
       });
       onClose();
     } catch (e) {
@@ -162,7 +161,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
 
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar?</Label>
-              <Textarea 
+              <芽TextArea 
                 placeholder={tipo === 'SOS' ? "Descreve a tua urgência com clareza..." : "Escreve aqui..."} 
                 value={texto} 
                 onChange={e => setTexto(e.target.value)}
