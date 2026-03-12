@@ -388,9 +388,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-row gap-2">
-                    <AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel>
+                    <AlertDialogCancel className="flex-1 rounded-xl h-9">Não</AlertDialogCancel>
                     <AlertDialogAction 
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-9"
                       onClick={handleCancelHelp}
                     >
                       Sim, Cancelar
