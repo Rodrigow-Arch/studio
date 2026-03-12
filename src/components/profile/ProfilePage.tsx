@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from 'react';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Calendar, Lock } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Calendar, Lock, Camera } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -36,6 +36,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const [postCount, setPostCount] = React.useState(0);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const targetUid = userId || currentUser?.uid;
   const isOwnProfile = targetUid === currentUser?.uid;
@@ -53,6 +54,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     district: '',
     zone: '',
     phoneNumber: '',
+    photoUrl: ''
   });
 
   React.useEffect(() => {
@@ -63,6 +65,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         district: userProfile.district || '',
         zone: userProfile.zone || '',
         phoneNumber: userProfile.phoneNumber || '',
+        photoUrl: userProfile.photoUrl || ''
       });
     }
   }, [userProfile]);
@@ -100,9 +103,9 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         district: editData.district,
         zone: editData.zone,
         phoneNumber: editData.phoneNumber,
+        photoUrl: editData.photoUrl
       });
       
-      // Verificar badges após completar perfil
       await checkAndAwardBadges(db, currentUser.uid);
 
       toast({
@@ -121,6 +124,25 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for base64 prototype storage
+        toast({
+          variant: "destructive",
+          title: "Imagem muito grande",
+          description: "Por favor, escolhe uma imagem com menos de 1MB."
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleGenerateBio = async () => {
     setIsGeneratingBio(true);
     try {
@@ -133,7 +155,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         setEditData(prev => ({ ...prev, description: res.suggestions[0] }));
         toast({
           title: "Bio sugerida!",
-          description: "A IA criou uma nova biografia para ti. Podes editá-la se quiseres.",
+          description: "A IA criou uma nova biografia para ti.",
         });
       }
     } catch (e) {
@@ -169,25 +191,28 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
       <div className="px-6 -mt-12 space-y-6 pb-24 relative z-10">
         <div className="flex flex-col items-center text-center space-y-3">
-          <Avatar className="w-24 h-24 border-4 border-white shadow-xl hover:scale-105 transition-transform duration-300" style={{ backgroundColor: userProfile.avatarColor }}>
-            <AvatarFallback className="bg-transparent text-white text-4xl font-headline">{userProfile.avatarLetter}</AvatarFallback>
+          <Avatar className="w-24 h-24 border-4 border-white shadow-xl hover:scale-105 transition-transform duration-300">
+            {userProfile.photoUrl && <AvatarImage src={userProfile.photoUrl} className="object-cover" />}
+            <AvatarFallback className="text-white text-4xl font-headline" style={{ backgroundColor: userProfile.avatarColor }}>
+              {userProfile.avatarLetter}
+            </AvatarFallback>
           </Avatar>
           <div className="space-y-1 animate-in slide-in-from-top-2 duration-500">
             <h2 className="font-headline text-2xl text-primary">{userProfile.fullName}</h2>
             <p className="text-muted-foreground text-sm font-medium">{userProfile.username}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm animate-in zoom-in-95 duration-700">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm">
             <MapPin className="w-3 h-3 text-primary" /> {userProfile.zone}, {userProfile.district}
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Ajudas', value: userProfile.helpsGiven, icon: ThumbsUp },
             { label: 'Posts', value: postCount, icon: MessageCircle },
             { label: 'Pontos', value: userProfile.points, icon: Award },
           ].map((stat, idx) => (
-            <Card key={stat.label} className="border-none bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300" style={{ animationDelay: `${idx * 100}ms` }}>
+            <Card key={stat.label} className="border-none bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <span className="text-lg font-black text-primary">{stat.value}</span>
                 <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</span>
@@ -196,19 +221,19 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           ))}
         </div>
 
-        <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700">
+        <div className="space-y-2">
           <h3 className="font-headline text-lg">Sobre {isOwnProfile ? 'mim' : userProfile.fullName.split(' ')[0]}</h3>
           <div className="text-sm text-muted-foreground bg-white p-5 rounded-3xl italic shadow-sm border border-secondary">
             {userProfile.description || (isOwnProfile ? "Conta algo sobre ti à comunidade..." : "Este utilizador ainda não adicionou uma descrição.")}
           </div>
         </div>
 
-        <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-700">
+        <div className="space-y-4">
           <h3 className="font-headline text-lg">Avaliações</h3>
           <RatingStats profile={userProfile} />
         </div>
 
-        <div className="pt-4 border-t space-y-4 animate-in fade-in duration-1000">
+        <div className="pt-4 border-t space-y-4">
           <BadgeGrid earnedBadgeIds={userProfile.earnedBadges || []} />
         </div>
 
@@ -226,7 +251,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                 <Button variant="ghost" size="icon" className="active:scale-90" onClick={() => setShowSettings(false)}>
                   <X className="w-6 h-6" />
                 </Button>
-                <h2 className="font-headline text-xl">Definições de Perfil</h2>
+                <h2 className="font-headline text-xl">Definições</h2>
               </div>
               <Button 
                 size="sm" 
@@ -240,8 +265,30 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
 
            <ScrollArea className="flex-1">
              <div className="p-6 space-y-8 pb-24">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <Avatar className="w-24 h-24 border-2 border-primary/20">
+                      {editData.photoUrl && <AvatarImage src={editData.photoUrl} className="object-cover" />}
+                      <AvatarFallback className="text-2xl font-bold" style={{ backgroundColor: userProfile.avatarColor }}>
+                        {userProfile.avatarLetter}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="text-white w-6 h-6" />
+                    </div>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
+                  <p className="text-[10px] text-muted-foreground uppercase font-black">Alterar Foto de Perfil</p>
+                </div>
+
                 <div className="space-y-6">
-                  <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Informação Editável</h3>
+                  <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Informação Pessoal</h3>
                   
                   <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
@@ -333,31 +380,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                       <Input value={userProfile.username} disabled className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10 font-medium" />
                       <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     </div>
-                  </div>
-
-                  <div className="space-y-2 opacity-70">
-                    <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
-                      <Calendar className="w-3 h-3" /> Membro desde
-                    </Label>
-                    <div className="relative">
-                      <Input 
-                        value={userProfile.joinedTimestamp ? format(new Date(userProfile.joinedTimestamp), "PPP", { locale: pt }) : 'N/A'} 
-                        disabled 
-                        className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10" 
-                      />
-                      <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6">
-                  <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 text-center space-y-2">
-                    <p className="text-[10px] text-primary uppercase font-black tracking-widest flex items-center justify-center gap-1">
-                      <Lock className="w-3 h-3" /> Aviso de Segurança
-                    </p>
-                    <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Por motivos de segurança e integridade da rede <strong>Portugal Unido</strong>, o teu email e nome de utilizador são permanentes. Para qualquer alteração crítica, contacta o suporte.
-                    </p>
                   </div>
                 </div>
 

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Euro, Wallet } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
@@ -11,7 +11,7 @@ import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
-import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
+import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 
@@ -22,12 +22,23 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [showComments, setShowComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
+  const [authorProfile, setAuthorProfile] = React.useState<any>(null);
 
   const currentUserDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
   }, [db, user]);
 
   const { data: currentUserProfile } = useDoc(currentUserDocRef);
+
+  React.useEffect(() => {
+    if (post.authorId) {
+      const fetchAuthor = async () => {
+        const snap = await getDoc(doc(db, 'users', post.authorId));
+        if (snap.exists()) setAuthorProfile(snap.data());
+      };
+      fetchAuthor();
+    }
+  }, [db, post.authorId]);
 
   const commentsQuery = useMemoFirebase(() => {
     return query(
@@ -71,9 +82,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         commentsMade: increment(1)
       });
 
-      // Verificar badges após comentar
       await checkAndAwardBadges(db, user.uid);
-
       setCommentText('');
     } catch (e) {
       console.error(e);
@@ -129,6 +138,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     }
   };
 
+  const authorPhoto = authorProfile?.photoUrl || post.authorPhotoUrl;
+
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
       <CardHeader className="p-4 flex flex-row items-center gap-3">
@@ -136,8 +147,11 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           className="flex flex-row items-center gap-3 cursor-pointer group"
           onClick={() => onProfileClick(post.authorId)}
         >
-          <Avatar className="w-10 h-10 transition-transform group-hover:scale-110 duration-300 shadow-sm" style={{ backgroundColor: post.authorAvatarColor }}>
-            <AvatarFallback className="bg-transparent text-white font-bold">{post.authorAvatarLetter}</AvatarFallback>
+          <Avatar className="w-10 h-10 transition-transform group-hover:scale-110 duration-300 shadow-sm">
+            {authorPhoto && <AvatarImage src={authorPhoto} className="object-cover" />}
+            <AvatarFallback className="text-white font-bold" style={{ backgroundColor: post.authorAvatarColor }}>
+              {post.authorAvatarLetter}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">

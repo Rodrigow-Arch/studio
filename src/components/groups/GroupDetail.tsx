@@ -1,10 +1,9 @@
-
 "use client";
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   ArrowLeft, 
   Plus, 
@@ -50,7 +49,6 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
   const groupRef = useMemoFirebase(() => doc(db, 'groups', groupId), [db, groupId]);
   const { data: group, isLoading: groupLoading } = useDoc(groupRef);
 
-  // Query para buscar as tarefas do grupo
   const tasksQuery = useMemoFirebase(() => {
     return query(
       collection(db, 'posts'),
@@ -65,7 +63,6 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
     return allPosts.filter(p => p.groupId === groupId);
   }, [allPosts, groupId]);
 
-  // Query para buscar perfis dos membros (limitado a 30 membros para MVP/performance)
   const membersQuery = useMemoFirebase(() => {
     if (!group?.memberIds || group.memberIds.length === 0) return null;
     return query(
@@ -228,8 +225,11 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                     onClick={() => onProfileClick(profile.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border" style={{ backgroundColor: profile.avatarColor }}>
-                        <AvatarFallback className="text-white font-bold">{profile.avatarLetter}</AvatarFallback>
+                      <Avatar className="h-10 w-10 border">
+                        {profile.photoUrl && <AvatarImage src={profile.photoUrl} className="object-cover" />}
+                        <AvatarFallback className="text-white font-bold" style={{ backgroundColor: profile.avatarColor }}>
+                          {profile.avatarLetter}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="text-sm font-bold leading-none">{profile.fullName}</p>

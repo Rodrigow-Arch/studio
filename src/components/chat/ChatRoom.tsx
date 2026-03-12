@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
@@ -21,11 +21,22 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const [rating, setRating] = React.useState(5);
   const [ratingComment, setRatingComment] = React.useState('');
   const [isResolving, setIsResolving] = React.useState(false);
+  const [otherProfile, setOtherProfile] = React.useState<any>(null);
   
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const chatId = post.id;
+  const isAuthor = post.authorId === user?.uid;
+  const otherId = isAuthor ? post.helperId : post.authorId;
+
+  React.useEffect(() => {
+    if (otherId) {
+      getDoc(doc(db, 'users', otherId)).then(snap => {
+        if (snap.exists()) setOtherProfile(snap.data());
+      });
+    }
+  }, [db, otherId]);
   
   const messagesQuery = useMemoFirebase(() => {
     return query(
@@ -69,9 +80,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       } else {
         await setDoc(typingDocRef, { isTyping: false }, { merge: true });
       }
-    } catch (e) {
-      // Ignore errors for typing status
-    }
+    } catch (e) {}
   };
 
   const handleInputChange = (val: string) => {
@@ -101,7 +110,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         timestamp: new Date().toISOString()
       });
 
-      const isAuthor = post.authorId === user.uid;
       const recipientId = isAuthor ? post.helperId : post.authorId;
 
       if (recipientId) {
@@ -157,7 +165,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         const oldAverage = helperData.averageRating || 0;
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
         
-        // Atribuição de pontos e contagem de ajudas
         const updateObj: any = {
           points: increment(50),
           helpsGiven: increment(1),
@@ -165,7 +172,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           averageRating: newAverage
         };
 
-        // Contar SOS e Tarefas Pagas para badges
         if (post.type === 'SOS') updateObj.sosResolved = increment(1);
         if (post.paymentAmount > 0) updateObj.paidTasksCompleted = increment(1);
 
@@ -179,8 +185,6 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       typingSnap.forEach(d => batch.delete(d.ref));
 
       await batch.commit();
-
-      // Verificar badges após resolver
       await checkAndAwardBadges(db, post.helperId);
 
       toast({
@@ -222,13 +226,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     };
   }, [user, chatId, db, post.id]);
 
-  const isAuthor = post.authorId === user?.uid;
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
-  const otherId = isAuthor ? post.helperId : post.authorId;
-
-  const handleStarClick = (value: number) => {
-    setRating(value);
-  };
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
@@ -237,10 +235,13 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex items-center gap-2">
             <Avatar 
-              className="w-8 h-8 bg-primary cursor-pointer hover:opacity-80 transition-opacity"
+              className="w-8 h-8 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => otherId && onProfileClick?.(otherId)}
             >
-              <AvatarFallback className="text-white text-xs">{otherName.charAt(0)}</AvatarFallback>
+              {otherProfile?.photoUrl && <AvatarImage src={otherProfile.photoUrl} className="object-cover" />}
+              <AvatarFallback className="text-white text-[10px] bg-primary font-bold">
+                {otherName.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="cursor-pointer" onClick={() => otherId && onProfileClick?.(otherId)}>
               <p className="text-sm font-bold leading-none hover:text-primary transition-colors">{otherName}</p>
@@ -317,23 +318,22 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           <DialogHeader>
             <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
             <DialogDescription>
-              Podes avaliar com meias estrelas. A tua avaliação ajuda a manter a confiança na comunidade.
+              A tua avaliação ajuda a manter a confiança na comunidade.
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex flex-col items-center py-6 gap-6">
             <div className="flex gap-1">
-              {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((val) => (
+              {[1, 2, 3, 4, 5].map((val) => (
                 <button 
                   key={val} 
                   type="button"
-                  onClick={() => handleStarClick(val)}
+                  onClick={() => setRating(val)}
                   className={`transition-all ${rating === val ? 'scale-125' : 'hover:scale-110'}`}
                 >
                   <Star 
                     className={`w-6 h-6 ${val <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground opacity-30'}`} 
                   />
-                  <span className="text-[8px] block mt-1">{val}</span>
                 </button>
               ))}
             </div>
