@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { Plus, LayoutGrid, Globe } from 'lucide-react';
+import { Plus, LayoutGrid, Globe, MapPin } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { calculateDistance } from '@/lib/geo';
@@ -20,6 +20,7 @@ export default function Feed({ onProfileClick }: FeedProps) {
   const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(false);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
+  const [scopeFilter, setScopeFilter] = React.useState<'all' | 'near'>('all');
 
   const userDocRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: currentUserProfile } = useDoc(userDocRef);
@@ -38,38 +39,36 @@ export default function Feed({ onProfileClick }: FeedProps) {
     
     const now = new Date();
     
-    // 1. Filtragem inicial
+    // 1. Filtragem inicial por tipo e agora por abrangência (Scope)
     let filtered = allPosts.filter(p => {
       const isPublic = !p.groupId || p.isPublic;
       const matchesType = filterType === 'Tudo' || p.type === filterType;
+      
+      // Filtrar por distrito se "Perto de si" estiver selecionado
+      const matchesScope = scopeFilter === 'all' || p.district === currentUserProfile.district;
       
       if (p.status === 'resolvido' && p.expiresAt) {
         const expiresAt = new Date(p.expiresAt);
         if (now > expiresAt) return false;
       }
       
-      return isPublic && matchesType;
+      return isPublic && matchesType && matchesScope;
     });
 
     // 2. Ordenação Inteligente (70% Proximidade, 30% Pontos)
-    // Regra: 0 pontos vão para o fim
     return filtered.sort((a, b) => {
       const pointsA = a.authorPoints || 0;
       const pointsB = b.authorPoints || 0;
 
-      // Utilizadores com 0 pontos aparecem no fim
       if (pointsA === 0 && pointsB > 0) return 1;
       if (pointsB === 0 && pointsA > 0) return -1;
 
       const distA = calculateDistance(currentUserProfile.latitude, currentUserProfile.longitude, a.latitude, a.longitude);
       const distB = calculateDistance(currentUserProfile.latitude, currentUserProfile.longitude, b.latitude, b.longitude);
 
-      // Normalização simples para scores (valores menores de distância são melhores)
-      // Usamos uma distância de referência de 50km
       const proxScoreA = Math.max(0, 1 - (distA / 50));
       const proxScoreB = Math.max(0, 1 - (distB / 50));
 
-      // Normalização de pontos (referência 5000 pontos)
       const pointsScoreA = Math.min(1, pointsA / 5000);
       const pointsScoreB = Math.min(1, pointsB / 5000);
 
@@ -78,7 +77,7 @@ export default function Feed({ onProfileClick }: FeedProps) {
 
       return scoreB - scoreA;
     });
-  }, [allPosts, filterType, currentUserProfile]);
+  }, [allPosts, filterType, scopeFilter, currentUserProfile]);
 
   if (isLoading) {
     return (
@@ -106,6 +105,22 @@ export default function Feed({ onProfileClick }: FeedProps) {
         </Button>
       </div>
 
+      {/* Seletor de Abrangência (Scope Filter) */}
+      <div className="flex bg-secondary/30 p-1 rounded-2xl">
+        <button 
+          className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${scopeFilter === 'all' ? 'bg-white shadow-md text-primary' : 'text-muted-foreground'}`}
+          onClick={() => setScopeFilter('all')}
+        >
+          <Globe className="w-3.5 h-3.5" /> Todos
+        </button>
+        <button 
+          className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${scopeFilter === 'near' ? 'bg-white shadow-md text-primary' : 'text-muted-foreground'}`}
+          onClick={() => setScopeFilter('near')}
+        >
+          <MapPin className="w-3.5 h-3.5" /> Perto de si
+        </button>
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {['Tudo', 'Ajuda', 'SOS', 'Partilha', 'Evento'].map((t) => (
           <Badge
@@ -125,11 +140,15 @@ export default function Feed({ onProfileClick }: FeedProps) {
 
       <div className="space-y-4 pb-20">
         {sortedAndFilteredPosts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 px-10 bg-white rounded-3xl border border-dashed">
+          <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 px-10 bg-white rounded-3xl border border-dashed animate-in zoom-in-95">
             <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center text-3xl shadow-inner">🇵🇹</div>
             <div className="space-y-1">
-              <h3 className="font-bold text-lg">Sem publicações públicas</h3>
-              <p className="text-muted-foreground text-xs">Sê o primeiro a conectar-te com os teus vizinhos na rede pública!</p>
+              <h3 className="font-bold text-lg">Sem publicações {scopeFilter === 'near' ? 'perto de ti' : 'públicas'}</h3>
+              <p className="text-muted-foreground text-xs">
+                {scopeFilter === 'near' 
+                  ? `Ainda não há nada em ${currentUserProfile?.district}. Sê o primeiro!`
+                  : 'Sê o primeiro a conectar-te com os teus vizinhos na rede pública!'}
+              </p>
             </div>
             <Button onClick={() => setShowCreate(true)} className="rounded-full px-8">Publicar Agora</Button>
           </div>
