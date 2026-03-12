@@ -70,8 +70,9 @@ export default function AuthFlow() {
         if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
         if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
         
-        // Verificação de Email Único
-        const qEmail = query(collection(db, "users"), where("email", "==", formData.email.trim().toLowerCase()), limit(1));
+        // Verificação de Email Único no Firestore antes de avançar
+        const emailLower = formData.email.trim().toLowerCase();
+        const qEmail = query(collection(db, "users"), where("email", "==", emailLower), limit(1));
         const snapEmail = await getDocs(qEmail);
         if (!snapEmail.empty) {
           throw new Error('Este email já está associado a outra conta. Tenta fazer login.');
@@ -83,7 +84,8 @@ export default function AuthFlow() {
         if (!formData.username) throw new Error('Username é obrigatório');
         
         const cleanUsername = formData.username.toLowerCase().trim();
-        const q = query(collection(db, "users"), where("username", "==", cleanUsername), limit(1));
+        const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
+        const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
         const snap = await getDocs(q);
         if (!snap.empty) {
           throw new Error('Este @username já está em uso. Tenta outro!');
@@ -138,16 +140,19 @@ export default function AuthFlow() {
     setError('');
     
     try {
-      // Dupla verificação final por segurança
+      const emailLower = formData.email.trim().toLowerCase();
       const cleanUsername = formData.username.toLowerCase().trim();
-      const q = query(collection(db, "users"), where("username", "==", cleanUsername), limit(1));
+      const finalUsername = cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`;
+
+      // Dupla verificação final por segurança
+      const q = query(collection(db, "users"), where("username", "==", finalUsername), limit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
         setStep(2);
         throw new Error('Este @username foi ocupado recentemente. Escolhe outro.');
       }
 
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, emailLower, formData.password);
       const user = userCredential.user;
 
       const avatarCor = `hsl(${Math.random() * 360}, 70%, 40%)`;
@@ -155,8 +160,8 @@ export default function AuthFlow() {
       const userProfile = {
         id: user.uid,
         fullName: formData.name,
-        username: cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`,
-        email: formData.email.trim().toLowerCase(),
+        username: finalUsername,
+        email: emailLower,
         birthDate: formData.dataNasc,
         district: formData.distrito,
         zone: formData.zona,
