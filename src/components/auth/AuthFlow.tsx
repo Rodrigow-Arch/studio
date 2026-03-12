@@ -14,9 +14,10 @@ import { DISTRITOS_PORTUGAL } from "@/lib/geo";
 import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDocs, collection, query, where } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
+import { generatePersonalizedUsernameSuggestion } from "@/ai/flows/personalized-username-suggestion";
 import ImageCropper from '@/components/profile/ImageCropper';
 import LegalModal from '@/components/legal/LegalModals';
 import CookieBanner from '@/components/legal/CookieBanner';
@@ -47,6 +48,7 @@ export default function AuthFlow() {
 
   const [loading, setLoading] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
+  const [isGeneratingUsername, setIsGeneratingUsername] = React.useState(false);
   const [error, setError] = React.useState('');
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
   
@@ -58,39 +60,58 @@ export default function AuthFlow() {
     type: 'terms'
   });
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError('');
-    if (step === 1) {
-      if (!formData.email.includes('@')) return setError('Email inválido');
-      if (formData.password.length < 6) return setError('Senha deve ter pelo menos 6 caracteres');
-      if (!formData.acceptTerms) return setError('Tens de aceitar os Termos e Condições para continuar.');
-    }
-    if (step === 2) {
-      if (!formData.name) return setError('Nome é obrigatório');
-      if (!formData.username) return setError('Username é obrigatório');
-    }
-    if (step === 3) {
-      const parts = formData.dataNasc.split('/');
-      if (parts.length === 3) {
-        const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-        if (isNaN(d.getTime())) return setError('Data inválida');
-        const age = (new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-        if (age < 18) return setError('Deves ter 18+ anos para te registares.');
-      } else {
-        return setError('Formato de data inválido (DD/MM/AAAA)');
-      }
-    }
-    if (step === 4) {
-      if (!formData.distrito) return setError('Distrito é obrigatório');
-      if (!formData.zona) return setError('Zona/Bairro é obrigatório');
-    }
-    if (step === 5) {
-      if (!formData.telefone || formData.telefone.replace(/\s/g, '').length < 9) {
-        return setError('Número de telemóvel inválido');
-      }
-    }
+    setLoading(true);
 
-    setStep(s => s + 1);
+    try {
+      if (step === 1) {
+        if (!formData.email.includes('@')) throw new Error('Email inválido');
+        if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
+        if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
+      }
+      
+      if (step === 2) {
+        if (!formData.name) throw new Error('Nome é obrigatório');
+        if (!formData.username) throw new Error('Username é obrigatório');
+        
+        const cleanUsername = formData.username.toLowerCase().trim();
+        const q = query(collection(db, "users"), where("username", "==", cleanUsername));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          throw new Error('Este @username já está em uso. Tenta outro!');
+        }
+      }
+
+      if (step === 3) {
+        const parts = formData.dataNasc.split('/');
+        if (parts.length === 3) {
+          const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          if (isNaN(d.getTime())) throw new Error('Data inválida');
+          const age = (new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+          if (age < 18) throw new Error('Deves ter 18+ anos para te registares.');
+        } else {
+          throw new Error('Formato de data inválido (DD/MM/AAAA)');
+        }
+      }
+
+      if (step === 4) {
+        if (!formData.distrito) throw new Error('Distrito é obrigatório');
+        if (!formData.zona) throw new Error('Zona/Bairro é obrigatório');
+      }
+
+      if (step === 5) {
+        if (!formData.telefone || formData.telefone.replace(/\s/g, '').length < 9) {
+          throw new Error('Número de telemóvel inválido');
+        }
+      }
+
+      setStep(s => s + 1);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async () => {
@@ -110,6 +131,15 @@ export default function AuthFlow() {
     setError('');
     
     try {
+      // Dupla verificação de username no final por segurança
+      const cleanUsername = formData.username.toLowerCase().trim();
+      const q = query(collection(db, "users"), where("username", "==", cleanUsername));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setStep(2);
+        throw new Error('Este @username foi ocupado recentemente. Escolhe outro.');
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
@@ -118,7 +148,7 @@ export default function AuthFlow() {
       const userProfile = {
         id: user.uid,
         fullName: formData.name,
-        username: formData.username.startsWith('@') ? formData.username : `@${formData.username}`,
+        username: cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`,
         email: formData.email,
         birthDate: formData.dataNasc,
         district: formData.distrito,
@@ -148,7 +178,11 @@ export default function AuthFlow() {
         description: "A tua conta foi criada com sucesso.",
       });
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro ao criar a conta.');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Este email já está associado a outra conta. Tenta fazer login.');
+      } else {
+        setError(err.message || 'Ocorreu um erro ao criar a conta.');
+      }
     } finally {
       setLoading(false);
     }
@@ -193,6 +227,25 @@ export default function AuthFlow() {
       });
     } finally {
       setIsGeneratingBio(false);
+    }
+  };
+
+  const handleSuggestUsername = async () => {
+    if (!formData.name) return setError('Escreve o teu nome primeiro.');
+    setIsGeneratingUsername(true);
+    try {
+      const res = await generatePersonalizedUsernameSuggestion({
+        fullName: formData.name,
+        district: formData.distrito || undefined
+      });
+      if (res.suggestedUsername) {
+        setFormData(prev => ({ ...prev, username: res.suggestedUsername }));
+        toast({ title: "Username sugerido!", description: "A IA encontrou um nome disponível para ti." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro na IA", description: "Não foi possível sugerir um username." });
+    } finally {
+      setIsGeneratingUsername(false);
     }
   };
 
@@ -285,7 +338,7 @@ export default function AuthFlow() {
               <div className="pt-2">
                 <Button 
                   variant="outline" 
-                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary/90 transition-all shadow-sm" 
+                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary transition-all shadow-sm" 
                   onClick={() => setMode('register')}
                 >
                   <UserPlus className="w-4 h-4 mr-2" /> Não tens conta? Cria uma agora
@@ -346,8 +399,8 @@ export default function AuthFlow() {
                     </Label>
                   </div>
 
-                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext} disabled={!formData.acceptTerms}>
-                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext} disabled={!formData.acceptTerms || loading}>
+                    {loading ? "A validar..." : "Continuar"} <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </CardContent>
               </Card>
@@ -366,11 +419,16 @@ export default function AuthFlow() {
                     }} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Nome de Utilizador (Username) <span className="text-destructive">*</span></Label>
-                    <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+                    <div className="flex items-center justify-between">
+                      <Label>Username <span className="text-destructive">*</span></Label>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 px-2 text-primary" onClick={handleSuggestUsername} disabled={isGeneratingUsername}>
+                        <Sparkles className={`w-3 h-3 ${isGeneratingUsername ? 'animate-spin' : ''}`} /> Gerar com IA
+                      </Button>
+                    </div>
+                    <Input value={formData.username} onChange={e => setFormData({...formData, username: e.target.value.toLowerCase()})} placeholder="@username" />
                   </div>
-                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>
-                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext} disabled={loading}>
+                    {loading ? "A verificar disponibilidade..." : "Continuar"} <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </CardContent>
               </Card>
@@ -500,7 +558,7 @@ export default function AuthFlow() {
             <div className="pt-4 text-center">
               <Button 
                 variant="outline" 
-                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary/90 transition-all shadow-sm" 
+                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary transition-all shadow-sm" 
                 onClick={() => setMode('login')}
               >
                 <LogIn className="w-4 h-4 mr-2" /> Já tens uma conta? Faz login
