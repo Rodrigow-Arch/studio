@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles } from "lucide-react";
+import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -45,6 +45,10 @@ export default function AuthFlow() {
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [error, setError] = React.useState('');
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
+  
+  // Estados para visibilidade da palavra-passe
+  const [showLoginPassword, setShowLoginPassword] = React.useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
 
   const handleNext = () => {
     setError('');
@@ -244,7 +248,21 @@ export default function AuthFlow() {
               </div>
               <div className="space-y-2">
                 <Label>Palavra-passe</Label>
-                <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                <div className="relative">
+                  <Input 
+                    type={showLoginPassword ? "text" : "password"} 
+                    value={formData.password} 
+                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               {error && <p className="text-xs text-destructive font-bold">{error}</p>}
               <Button className="w-full h-12 rounded-2xl font-bold text-md" onClick={handleLogin} disabled={loading}>
@@ -272,7 +290,22 @@ export default function AuthFlow() {
                   </div>
                   <div className="space-y-2">
                     <Label>Palavra-passe</Label>
-                    <Input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Mínimo 6 caracteres" />
+                    <div className="relative">
+                      <Input 
+                        type={showRegisterPassword ? "text" : "password"} 
+                        value={formData.password} 
+                        onChange={e => setFormData({...formData, password: e.target.value})} 
+                        placeholder="Mínimo 6 caracteres" 
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                       <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length >= 6 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
                     </div>
