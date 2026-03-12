@@ -1,9 +1,11 @@
+
 "use client";
 
 import * as React from 'react';
 import { Star, Quote, ChevronDown, ChevronUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, limit } from "firebase/firestore";
 import { formatDistanceToNow } from "date-fns";
@@ -11,9 +13,10 @@ import { pt } from "date-fns/locale";
 
 interface RatingStatsProps {
   profile: any;
+  onProfileClick?: (uid: string) => void;
 }
 
-export default function RatingStats({ profile }: RatingStatsProps) {
+export default function RatingStats({ profile, onProfileClick }: RatingStatsProps) {
   const db = useFirestore();
   const [showAllTestimonials, setShowAllTestimonials] = React.useState(false);
 
@@ -122,17 +125,32 @@ export default function RatingStats({ profile }: RatingStatsProps) {
           ) : ratingComments && ratingComments.length > 0 ? (
             <div className="space-y-3 animate-in fade-in duration-500">
               {ratingComments.map((rc: any) => (
-                <div key={rc.id} className="bg-secondary/10 p-3 rounded-2xl border border-transparent hover:border-primary/10 transition-all">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold text-primary">@{rc.raterUsername}</span>
-                    <div className="flex text-yellow-400">
-                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-2 h-2 ${i <= rc.stars ? 'fill-current' : ''}`} />)}
+                <div key={rc.id} className="bg-secondary/10 p-3 rounded-2xl border border-transparent hover:border-primary/10 transition-all flex gap-3">
+                  <Avatar 
+                    className="w-8 h-8 shrink-0 cursor-pointer hover:scale-110 transition-transform border border-white shadow-sm"
+                    onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
+                  >
+                    <AvatarFallback className="text-[10px] font-bold bg-primary text-white">
+                      {rc.raterUsername?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span 
+                        className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
+                        onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
+                      >
+                        @{rc.raterUsername}
+                      </span>
+                      <div className="flex text-yellow-400">
+                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-2 h-2 ${i <= rc.stars ? 'fill-current' : ''}`} />)}
+                      </div>
                     </div>
+                    <p className="text-xs italic text-muted-foreground leading-snug">"{rc.comment || 'Ajudou imenso, recomendo!'}"</p>
+                    <p className="text-[8px] text-right mt-1 text-muted-foreground/60 uppercase font-black">
+                      {formatDistanceToNow(new Date(rc.timestamp), { addSuffix: true, locale: pt })}
+                    </p>
                   </div>
-                  <p className="text-xs italic text-muted-foreground leading-snug">"{rc.comment || 'Ajudou imenso, recomendo!'}"</p>
-                  <p className="text-[8px] text-right mt-1 text-muted-foreground/60 uppercase font-black">
-                    {formatDistanceToNow(new Date(rc.timestamp), { addSuffix: true, locale: pt })}
-                  </p>
                 </div>
               ))}
             </div>

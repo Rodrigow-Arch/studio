@@ -456,7 +456,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
         <div className="space-y-4">
           <h3 className="font-headline text-lg">Avaliações e Testemunhos</h3>
-          <RatingStats profile={userProfile} />
+          <RatingStats profile={userProfile} onProfileClick={onProfileClick} />
         </div>
 
         <div className="space-y-4 pt-6 border-t">
@@ -511,7 +511,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                 {profileComments.map((pc: any) => (
                   <div key={pc.id} className="flex gap-3 animate-in fade-in slide-in-from-left-2">
                     <Avatar 
-                      className="w-8 h-8 shrink-0 border cursor-pointer hover:scale-110 transition-transform"
+                      className="w-8 h-8 shrink-0 border cursor-pointer hover:scale-110 transition-transform shadow-sm"
                       onClick={() => handleMuralAuthorClick(pc.authorId)}
                     >
                       <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: pc.authorAvatarColor }}>
@@ -894,44 +894,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         onCropComplete={handleCropComplete} 
         onCancel={() => setImageToCrop(null)} 
       />
-    </div>
-  );
-}
-
-function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick: (uid: string) => void }) {
-  const db = useFirestore();
-  const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
-  const { data: authorProfile } = useDoc(authorRef);
-  const trustLevel = getTrustLevel(authorProfile?.points || comment.authorPoints || 0);
-
-  return (
-    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300 group">
-      <Avatar 
-        className="w-7 h-7 shrink-0 cursor-pointer hover:scale-110 transition-transform shadow-sm" 
-        onClick={() => onProfileClick(comment.authorId)}
-      >
-        {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
-        <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: comment.authorAvatarColor || '#e2e8f0' }}>
-          {comment.authorAvatarLetter}
-        </AvatarFallback>
-      </Avatar>
-      <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm border border-secondary/20 hover:border-primary/20 transition-colors">
-        <div className="flex items-center gap-1 mb-0.5">
-          <span 
-            className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
-            onClick={() => onProfileClick(comment.authorId)}
-          >
-            {comment.authorUsername}
-          </span>
-          {trustLevel && (
-            <span className="text-[8px]" title={trustLevel.label}>{trustLevel.icon}</span>
-          )}
-          <span className="text-[8px] text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
-          </span>
-        </div>
-        <p className="text-muted-foreground leading-snug">{comment.text}</p>
-      </div>
     </div>
   );
 }
