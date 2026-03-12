@@ -161,7 +161,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
 
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">O que precisas ou tens para partilhar?</Label>
-              <芽TextArea 
+              <Textarea 
                 placeholder={tipo === 'SOS' ? "Descreve a tua urgência com clareza..." : "Escreve aqui..."} 
                 value={texto} 
                 onChange={e => setTexto(e.target.value)}

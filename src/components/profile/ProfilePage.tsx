@@ -288,10 +288,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           <div className="pt-6 border-t">
             <Button 
               variant="outline" 
-              className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 active:scale-95 transition-all rounded-2xl h-12 font-bold gap-2" 
+              className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-accent active:scale-95 transition-all rounded-2xl h-12 font-bold gap-2" 
               onClick={() => setIsReportOpen(true)}
             >
-              <AlertTriangle className="w-4 h-4" /> Denunciar {userProfile.fullName.split(' ')[0]}
+              <Flag className="w-4 h-4" /> Denunciar {userProfile.fullName.split(' ')[0]}
             </Button>
           </div>
         )}
