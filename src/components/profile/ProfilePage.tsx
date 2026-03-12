@@ -711,6 +711,57 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                 </div>
 
                 <div className="space-y-6 pt-6 border-t">
+                  <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2 flex items-center justify-between">
+                    Redes Sociais <LinkIcon className="w-4 h-4" />
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {editData.socialLinks.map((link, index) => (
+                      <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-2">
+                        <div className="w-32 space-y-1.5">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Plataforma</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs focus:ring-2 focus:ring-primary"
+                            value={link.platform}
+                            onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
+                          >
+                            <option value="Instagram">Instagram</option>
+                            <option value="YouTube">YouTube</option>
+                            <option value="Website">Website</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Link / URL <span className="text-destructive">*</span></Label>
+                          <Input 
+                            placeholder="ex: instagram.com/teu_user" 
+                            value={link.url} 
+                            onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
+                            className="h-9 text-xs rounded-lg"
+                          />
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                          onClick={() => removeSocialLink(index)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-dashed border-2 h-10 text-xs font-bold gap-2 rounded-xl text-primary"
+                      onClick={addSocialLink}
+                    >
+                      <Plus className="w-4 h-4" /> Adicionar Rede Social
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-6 pt-6 border-t">
                   <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Documentação Legal</h3>
                   <div className="flex flex-col gap-2">
                     <Button variant="outline" className="justify-between text-xs font-bold" onClick={() => setLegalModal({ isOpen: true, type: 'terms' })}>
