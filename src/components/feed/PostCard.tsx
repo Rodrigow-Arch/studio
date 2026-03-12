@@ -1,10 +1,11 @@
+
 "use client";
 
 import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send } from "lucide-react";
+import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Euro, Wallet } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -149,11 +150,22 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         </div>
       </CardHeader>
       
-      <CardContent className="px-4 py-2">
+      <CardContent className="px-4 py-2 space-y-3">
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.text}</p>
         
+        {/* Exibição da Recompensa (apenas se existir) */}
+        {post.paymentAmount > 0 && (
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 p-2.5 rounded-xl w-fit animate-in zoom-in-95">
+            <Wallet className="w-4 h-4 text-primary" />
+            <div className="flex flex-col">
+              <span className="text-[11px] font-black text-primary uppercase leading-tight">Recompensa: {post.paymentAmount}€</span>
+              <span className="text-[9px] text-muted-foreground font-medium uppercase">{post.paymentMethod}</span>
+            </div>
+          </div>
+        )}
+
         {post.status !== 'aberto' && (
-           <div className="mt-3 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit">
+           <div className="mt-1 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit">
               {post.status === 'em curso' ? '🟡 Em curso' : '✅ Resolvido'}
            </div>
         )}

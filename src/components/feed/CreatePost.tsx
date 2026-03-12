@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Sparkles, MapPin, Shield } from "lucide-react";
+import { X, Sparkles, MapPin, Shield, Euro, Wallet } from "lucide-react";
 import { smartPostContentSuggestion } from "@/ai/flows/smart-post-content-suggestion-flow";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
 
@@ -35,9 +37,21 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   const [texto, setTexto] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
+  
+  // Novos campos para pagamento (apenas público)
+  const [recompensa, setRecompensa] = React.useState<string>('');
+  const [metodoPagamento, setMetodoPagamento] = React.useState<string>('Dinheiro');
 
   const handleCreate = async () => {
     if (!texto || !user || !userProfile) return;
+    
+    // Validação de pagamento se valor for inserido
+    const valorNum = parseFloat(recompensa);
+    if (!groupId && !isNaN(valorNum) && valorNum > 0 && !metodoPagamento) {
+      toast({ variant: "destructive", title: "Erro", description: "Seleciona um método de pagamento." });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -56,15 +70,17 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
         commentCount: 0,
         status: 'aberto',
         timestamp: new Date().toISOString(),
-        groupId: groupId || null, // Se groupId existir, o post é privado do grupo
-        isPublic: !groupId // Se não houver groupId, o post é público
+        groupId: groupId || null, 
+        isPublic: !groupId,
+        // Dados de pagamento (opcionais)
+        paymentAmount: !groupId && !isNaN(valorNum) ? valorNum : 0,
+        paymentMethod: !groupId && !isNaN(valorNum) && valorNum > 0 ? metodoPagamento : null
       };
 
       await addDoc(collection(db, "posts"), postData);
       
-      // Atribui pontos pela participação
       await updateDoc(doc(db, "users", user.uid), {
-        points: increment(groupId ? 10 : 15) // Menos pontos para posts de grupo privados
+        points: increment(groupId ? 10 : 15)
       });
 
       toast({
@@ -101,7 +117,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-end justify-center p-4 animate-in fade-in">
-      <Card className="w-full max-w-sm mb-20 animate-in slide-in-from-bottom-8 duration-300 flex flex-col max-h-[85vh] shadow-2xl border-primary/10">
+      <Card className="w-full max-w-sm mb-20 animate-in slide-in-from-bottom-8 duration-300 flex flex-col max-h-[90vh] shadow-2xl border-primary/10">
         <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0 bg-primary/5 rounded-t-xl">
           <div className="flex items-center gap-2">
             {groupId && <Shield className="w-4 h-4 text-primary" />}
@@ -132,10 +148,45 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
                 placeholder={groupId ? "Ex: Alguém tem uma cebola que possa dispensar?" : "Escreve aqui..."} 
                 value={texto} 
                 onChange={e => setTexto(e.target.value)}
-                className="min-h-[100px] text-sm rounded-xl border-2 focus:border-primary transition-all resize-none"
+                className="min-h-[80px] text-sm rounded-xl border-2 focus:border-primary transition-all resize-none"
                 disabled={loading}
               />
             </div>
+
+            {/* Funcionalidade de Pagamento apenas para Posts Públicos */}
+            {!groupId && (
+              <div className="space-y-3 p-3 bg-secondary/10 rounded-2xl border border-dashed border-primary/20">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
+                    <Euro className="w-3 h-3" /> Recompensa Opcional (€)
+                  </Label>
+                  <span className="text-[9px] text-muted-foreground italic">Não é obrigatório</span>
+                </div>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={recompensa}
+                  onChange={e => setRecompensa(e.target.value)}
+                  className="h-9 text-sm rounded-xl bg-white"
+                />
+                
+                {parseFloat(recompensa) > 0 && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Método de Pagamento (Obrigatório)</Label>
+                    <RadioGroup value={metodoPagamento} onValueChange={setMetodoPagamento} className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Dinheiro" id="dinheiro" />
+                        <Label htmlFor="dinheiro" className="text-xs">Dinheiro</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="MB WAY" id="mbway" />
+                        <Label htmlFor="mbway" className="text-xs">MB WAY</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground bg-secondary/40 px-2 py-1 rounded-full">
