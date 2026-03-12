@@ -34,7 +34,7 @@ export default function BadgeGrid({ earnedBadgeIds = [] }: BadgeGridProps) {
           variant="ghost" 
           size="sm" 
           onClick={() => setShowAll(!showAll)}
-          className="text-xs font-bold text-primary hover:bg-primary/5"
+          className="text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all active:bg-accent"
         >
           {showAll ? (
             <><ChevronUp className="w-4 h-4 mr-1" /> Ver menos</>
