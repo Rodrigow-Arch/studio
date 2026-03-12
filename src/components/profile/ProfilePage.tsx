@@ -260,7 +260,9 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <span className="text-lg font-black text-primary">{stat.value}</span>
                 <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</span>
-                {stat.onClick && <Info className="w-2 h-2 mt-1 text-primary opacity-40" />}
+                {stat.onClick && (
+                  <span className="text-[8px] text-primary font-bold mt-1.5 uppercase tracking-tighter opacity-80">Saber Mais</span>
+                )}
               </CardContent>
             </Card>
           ))}
