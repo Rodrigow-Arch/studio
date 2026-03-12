@@ -93,6 +93,16 @@
           "type": "string",
           "description": "The date and time when the user registered and joined the community.",
           "format": "date-time"
+        },
+        "socialLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "platform": { "type": "string" },
+              "url": { "type": "string" }
+            }
+          }
         }
       },
       "required": [
