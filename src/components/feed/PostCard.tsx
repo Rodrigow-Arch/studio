@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet } from "lucide-react";
+import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award } from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -15,6 +15,7 @@ import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@
 import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
+import { getTrustLevel } from '@/lib/trust-levels';
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
@@ -66,6 +67,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       authorId: user.uid,
       authorUsername: currentUserProfile.username,
       authorAvatarLetter: currentUserProfile.avatarLetter,
+      authorPoints: currentUserProfile.points || 0,
       timestamp: new Date().toISOString()
     };
 
@@ -97,6 +99,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         applicantUsername: currentUserProfile.username,
         applicantZone: currentUserProfile.zone,
         applicantAverageRating: currentUserProfile.averageRating,
+        applicantPoints: currentUserProfile.points || 0,
         timestamp: new Date().toISOString(),
         status: 'pending'
       };
@@ -113,6 +116,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         message: `${currentUserProfile.username} quer ajudar-te no post: "${post.text.substring(0, 30)}..."`,
         postId: post.id,
         applicantId: user.uid,
+        applicantUsername: currentUserProfile.username,
+        applicantPoints: currentUserProfile.points || 0,
         isRead: false,
         timestamp: new Date().toISOString()
       };
@@ -134,6 +139,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     }
   };
 
+  const trustLevel = getTrustLevel(authorProfile?.points || 0);
+
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
       <CardHeader className="p-4 flex flex-row items-center gap-3">
@@ -150,6 +157,11 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm truncate group-hover:text-primary transition-colors">{post.authorUsername}</span>
+              {trustLevel && (
+                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[8px] font-black uppercase`}>
+                  {trustLevel.icon} {trustLevel.label}
+                </div>
+              )}
               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 h-4 font-normal transition-all ${typeColors[post.type] || ''}`}>
                 {post.type}
               </Badge>
@@ -242,6 +254,7 @@ function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick
   const db = useFirestore();
   const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
   const { data: authorProfile } = useDoc(authorRef);
+  const trustLevel = getTrustLevel(authorProfile?.points || comment.authorPoints || 0);
 
   return (
     <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -253,12 +266,17 @@ function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick
         <AvatarFallback className="text-[10px] bg-secondary">{comment.authorAvatarLetter}</AvatarFallback>
       </Avatar>
       <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm">
-        <span 
-          className="font-bold mr-1 cursor-pointer hover:underline text-primary"
-          onClick={() => onProfileClick(comment.authorId)}
-        >
-          {comment.authorUsername}
-        </span>
+        <div className="flex items-center gap-1 mb-0.5">
+          <span 
+            className="font-bold cursor-pointer hover:underline text-primary"
+            onClick={() => onProfileClick(comment.authorId)}
+          >
+            {comment.authorUsername}
+          </span>
+          {trustLevel && (
+            <span className={`text-[7px] ${trustLevel.color}`}>{trustLevel.icon}</span>
+          )}
+        </div>
         {comment.text}
       </div>
     </div>

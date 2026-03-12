@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -18,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
+import { getTrustLevel } from '@/lib/trust-levels';
 
 interface ProfilePageProps {
   userId?: string;
@@ -166,6 +168,8 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     }
   };
 
+  const trustLevel = getTrustLevel(userProfile.points || 0);
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
       <div className="bg-primary h-32 relative overflow-hidden">
@@ -195,8 +199,18 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
             </AvatarFallback>
           </Avatar>
           <div className="space-y-1 animate-in slide-in-from-top-2 duration-500">
-            <h2 className="font-headline text-2xl text-primary">{userProfile.fullName}</h2>
+            <div className="flex items-center justify-center gap-2">
+              <h2 className="font-headline text-2xl text-primary">{userProfile.fullName}</h2>
+              {trustLevel && (
+                <span title={trustLevel.label} className="text-2xl">{trustLevel.icon}</span>
+              )}
+            </div>
             <p className="text-muted-foreground text-sm font-medium">{userProfile.username}</p>
+            {trustLevel && (
+              <div className={`mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full ${trustLevel.bg} ${trustLevel.color} text-[10px] font-black uppercase tracking-wider border border-current/20`}>
+                <Award className="w-3 h-3" /> {trustLevel.label}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm">
             <MapPin className="w-3 h-3 text-primary" /> {userProfile.zone}, {userProfile.district}

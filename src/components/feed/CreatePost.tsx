@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -60,6 +61,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
         authorUsername: userProfile.username,
         authorAvatarLetter: userProfile.avatarLetter,
         authorAvatarColor: userProfile.avatarColor,
+        authorPoints: userProfile.points || 0, // Denormalização para ordenação inteligente
         district: userProfile.district,
         zone: userProfile.zone,
         latitude: userProfile.latitude || 0,

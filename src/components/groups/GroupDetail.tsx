@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -32,6 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getTrustLevel } from '@/lib/trust-levels';
 
 interface GroupDetailProps {
   groupId: string;
@@ -218,29 +220,40 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
               </div>
             ) : (
               <div className="space-y-2">
-                {memberProfiles?.map(profile => (
-                  <div 
-                    key={profile.id} 
-                    className="flex items-center justify-between p-3 bg-white border rounded-2xl cursor-pointer hover:bg-secondary/10 transition-colors"
-                    onClick={() => onProfileClick(profile.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border">
-                        {profile.photoUrl && <AvatarImage src={profile.photoUrl} className="object-cover" />}
-                        <AvatarFallback className="text-white font-bold" style={{ backgroundColor: profile.avatarColor }}>
-                          {profile.avatarLetter}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-bold leading-none">{profile.fullName}</p>
-                        <p className="text-[10px] text-muted-foreground">{profile.username}</p>
+                {memberProfiles?.map(profile => {
+                  const trustLevel = getTrustLevel(profile.points || 0);
+                  return (
+                    <div 
+                      key={profile.id} 
+                      className="flex items-center justify-between p-3 bg-white border rounded-2xl cursor-pointer hover:bg-secondary/10 transition-colors"
+                      onClick={() => onProfileClick(profile.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border">
+                          {profile.photoUrl && <AvatarImage src={profile.photoUrl} className="object-cover" />}
+                          <AvatarFallback className="text-white font-bold" style={{ backgroundColor: profile.avatarColor }}>
+                            {profile.avatarLetter}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <p className="text-sm font-bold leading-none">{profile.fullName}</p>
+                            {trustLevel && <span title={trustLevel.label}>{trustLevel.icon}</span>}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">{profile.username}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {profile.id === group?.adminId && (
+                          <Badge variant="secondary" className="text-[8px] uppercase tracking-widest bg-primary/10 text-primary border-none">Admin</Badge>
+                        )}
+                        {trustLevel && (
+                          <span className={`text-[8px] font-black uppercase ${trustLevel.color}`}>{trustLevel.label}</span>
+                        )}
                       </div>
                     </div>
-                    {profile.id === group?.adminId && (
-                      <Badge variant="secondary" className="text-[8px] uppercase tracking-widest bg-primary/10 text-primary border-none">Admin</Badge>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center text-center gap-2">

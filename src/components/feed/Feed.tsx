@@ -7,17 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { Plus, LayoutGrid, Globe } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { calculateDistance } from '@/lib/geo';
 
 interface FeedProps {
   onProfileClick: (uid: string) => void;
 }
 
 export default function Feed({ onProfileClick }: FeedProps) {
+  const { user } = useUser();
   const db = useFirestore();
   const [showCreate, setShowCreate] = React.useState(false);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
+
+  const userDocRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const { data: currentUserProfile } = useDoc(userDocRef);
 
   const postsQuery = useMemoFirebase(() => {
     return query(
@@ -28,12 +33,13 @@ export default function Feed({ onProfileClick }: FeedProps) {
 
   const { data: allPosts, isLoading } = useCollection(postsQuery);
 
-  const filteredPosts = React.useMemo(() => {
-    if (!allPosts) return [];
+  const sortedAndFilteredPosts = React.useMemo(() => {
+    if (!allPosts || !currentUserProfile) return [];
     
     const now = new Date();
     
-    return allPosts.filter(p => {
+    // 1. Filtragem inicial
+    let filtered = allPosts.filter(p => {
       const isPublic = !p.groupId || p.isPublic;
       const matchesType = filterType === 'Tudo' || p.type === filterType;
       
@@ -44,7 +50,35 @@ export default function Feed({ onProfileClick }: FeedProps) {
       
       return isPublic && matchesType;
     });
-  }, [allPosts, filterType]);
+
+    // 2. Ordenação Inteligente (70% Proximidade, 30% Pontos)
+    // Regra: 0 pontos vão para o fim
+    return filtered.sort((a, b) => {
+      const pointsA = a.authorPoints || 0;
+      const pointsB = b.authorPoints || 0;
+
+      // Utilizadores com 0 pontos aparecem no fim
+      if (pointsA === 0 && pointsB > 0) return 1;
+      if (pointsB === 0 && pointsA > 0) return -1;
+
+      const distA = calculateDistance(currentUserProfile.latitude, currentUserProfile.longitude, a.latitude, a.longitude);
+      const distB = calculateDistance(currentUserProfile.latitude, currentUserProfile.longitude, b.latitude, b.longitude);
+
+      // Normalização simples para scores (valores menores de distância são melhores)
+      // Usamos uma distância de referência de 50km
+      const proxScoreA = Math.max(0, 1 - (distA / 50));
+      const proxScoreB = Math.max(0, 1 - (distB / 50));
+
+      // Normalização de pontos (referência 5000 pontos)
+      const pointsScoreA = Math.min(1, pointsA / 5000);
+      const pointsScoreB = Math.min(1, pointsB / 5000);
+
+      const scoreA = (proxScoreA * 0.7) + (pointsScoreA * 0.3);
+      const scoreB = (proxScoreB * 0.7) + (pointsScoreB * 0.3);
+
+      return scoreB - scoreA;
+    });
+  }, [allPosts, filterType, currentUserProfile]);
 
   if (isLoading) {
     return (
@@ -90,7 +124,7 @@ export default function Feed({ onProfileClick }: FeedProps) {
       )}
 
       <div className="space-y-4 pb-20">
-        {filteredPosts.length === 0 ? (
+        {sortedAndFilteredPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 px-10 bg-white rounded-3xl border border-dashed">
             <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center text-3xl shadow-inner">🇵🇹</div>
             <div className="space-y-1">
@@ -100,7 +134,7 @@ export default function Feed({ onProfileClick }: FeedProps) {
             <Button onClick={() => setShowCreate(true)} className="rounded-full px-8">Publicar Agora</Button>
           </div>
         ) : (
-          filteredPosts.map(post => (
+          sortedAndFilteredPosts.map(post => (
             <PostCard key={post.id} post={post} onProfileClick={onProfileClick} />
           ))
         )}

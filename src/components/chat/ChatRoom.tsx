@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
+import { getTrustLevel } from '@/lib/trust-levels';
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -222,6 +223,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   }, [user, chatId, db, post.id]);
 
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
+  const trustLevel = otherProfile ? getTrustLevel(otherProfile.points || 0) : null;
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
@@ -239,7 +241,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
               </AvatarFallback>
             </Avatar>
             <div className="cursor-pointer" onClick={() => otherId && onProfileClick?.(otherId)}>
-              <p className="text-sm font-bold leading-none hover:text-primary transition-colors">{otherName}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-bold leading-none hover:text-primary transition-colors">{otherName}</p>
+                {trustLevel && <span title={trustLevel.label}>{trustLevel.icon}</span>}
+              </div>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 Post: {post.type} <ExternalLink className="w-2 h-2" />
               </p>
