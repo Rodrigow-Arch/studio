@@ -170,7 +170,7 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
               />
             </div>
 
-            {tipo !== 'SOS' && !groupId && (
+            {!groupId && (
               <div className="space-y-3 p-3 bg-secondary/10 rounded-2xl border border-dashed border-primary/20">
                 <div className="flex items-center justify-between">
                   <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-1.5">
