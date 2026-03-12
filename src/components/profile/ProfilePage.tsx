@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -26,6 +27,7 @@ import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import ReportModal from '../security/ReportModal';
 import { differenceInDays } from 'date-fns';
+import ImageCropper from '@/components/profile/ImageCropper';
 
 interface SocialLink {
   platform: string;
@@ -49,6 +51,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
+  const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const targetUid = userId || currentUser?.uid;
@@ -109,7 +112,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const handleSaveSettings = async () => {
     if (!currentUser) return;
     
-    // Validação obrigatória dos links das redes sociais
     const hasEmptyLinks = editData.socialLinks.some(link => !link.url.trim());
     if (hasEmptyLinks) {
       toast({
@@ -154,20 +156,17 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 800 * 1024) { 
-        toast({
-          variant: "destructive",
-          title: "Imagem muito grande",
-          description: "Por favor, escolhe uma imagem com menos de 800KB."
-        });
-        return;
-      }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEditData(prev => ({ ...prev, photoUrl: reader.result as string }));
+        setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setEditData(prev => ({ ...prev, photoUrl: croppedImage }));
+    setImageToCrop(null);
   };
 
   const handleGenerateBio = async () => {
@@ -284,7 +283,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
             </div>
             <p className="text-muted-foreground text-sm font-medium">{userProfile.username}</p>
             
-            {/* Social Links Badge Row */}
             {userProfile.socialLinks && userProfile.socialLinks.length > 0 && (
               <div className="flex items-center justify-center gap-3 pt-2">
                 {userProfile.socialLinks.map((link: SocialLink, idx: number) => (
@@ -654,7 +652,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                 <div className="pt-4 pb-12">
                   <Button 
                     variant="outline" 
-                    className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-accent rounded-2xl h-12 font-bold" 
+                    className="w-full text-destructive border-destructive/20 hover:bg-primary hover:text-white active:bg-primary active:text-white active:scale-95 transition-all rounded-2xl h-12 font-bold" 
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4 mr-2" /> Terminar Sessão
@@ -664,6 +662,12 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
            </ScrollArea>
         </div>
       )}
+
+      <ImageCropper 
+        image={imageToCrop} 
+        onCropComplete={handleCropComplete} 
+        onCancel={() => setImageToCrop(null)} 
+      />
     </div>
   );
 }

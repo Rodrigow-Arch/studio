@@ -16,6 +16,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "fire
 import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
+import ImageCropper from '@/components/profile/ImageCropper';
 
 export default function AuthFlow() {
   const { toast } = useToast();
@@ -43,6 +44,7 @@ export default function AuthFlow() {
   const [loading, setLoading] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
 
   const handleNext = () => {
     setError('');
@@ -142,20 +144,17 @@ export default function AuthFlow() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 800 * 1024) { 
-        toast({
-          variant: "destructive",
-          title: "Imagem muito grande",
-          description: "Por favor, escolhe uma imagem com menos de 800KB."
-        });
-        return;
-      }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
+        setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setFormData(prev => ({ ...prev, photoUrl: croppedImage }));
+    setImageToCrop(null);
   };
 
   const handleGenerateBio = async () => {
@@ -435,6 +434,12 @@ export default function AuthFlow() {
           </div>
         )}
       </div>
+
+      <ImageCropper 
+        image={imageToCrop} 
+        onCropComplete={handleCropComplete} 
+        onCancel={() => setImageToCrop(null)} 
+      />
     </div>
   );
 }
