@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, ShieldCheck, AlertTriangle } from "lucide-react";
+import { MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, ShieldCheck, AlertTriangle, Info, CheckCircle2, XCircle, HeartHandshake } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
@@ -35,6 +35,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const { toast } = useToast();
   
   const [showSettings, setShowSettings] = React.useState(false);
+  const [showPointsGuide, setShowPointsGuide] = React.useState(false);
   const [postCount, setPostCount] = React.useState(0);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
@@ -244,12 +245,22 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           {[
             { label: 'Ajudas', value: userProfile.helpsGiven, icon: ThumbsUp },
             { label: 'Posts', value: postCount, icon: MessageCircle },
-            { label: 'Pontos', value: userProfile.points, icon: Award },
+            { 
+              label: 'Pontos', 
+              value: userProfile.points, 
+              icon: Award, 
+              onClick: () => isOwnProfile && setShowPointsGuide(true)
+            },
           ].map((stat) => (
-            <Card key={stat.label} className="border-none bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <Card 
+              key={stat.label} 
+              className={`border-none bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ${stat.onClick ? 'cursor-help ring-1 ring-primary/5' : ''}`}
+              onClick={stat.onClick}
+            >
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <span className="text-lg font-black text-primary">{stat.value}</span>
                 <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</span>
+                {stat.onClick && <Info className="w-2 h-2 mt-1 text-primary opacity-40" />}
               </CardContent>
             </Card>
           ))}
@@ -271,7 +282,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           <BadgeGrid earnedBadgeIds={userProfile.earnedBadges || []} />
         </div>
 
-        {/* Botão de Denúncia Dedicado dentro do Perfil */}
         {!isOwnProfile && (
           <div className="pt-6 border-t">
             <Button 
@@ -281,9 +291,6 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
             >
               <AlertTriangle className="w-4 h-4" /> Denunciar {userProfile.fullName.split(' ')[0]}
             </Button>
-            <p className="text-[10px] text-center mt-2 text-muted-foreground italic">
-              A tua denúncia é anónima e ajuda a manter a comunidade segura.
-            </p>
           </div>
         )}
 
@@ -303,6 +310,75 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         onClose={() => setIsReportOpen(false)}
         reportedUserId={targetUid}
       />
+
+      {/* GUIA DE PONTOS TRANSPARENTE */}
+      {showPointsGuide && (
+        <div className="fixed inset-0 z-[120] bg-white animate-in slide-in-from-bottom duration-300 flex flex-col">
+          <header className="p-4 border-b flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowPointsGuide(false)}><X className="w-6 h-6" /></Button>
+              <h2 className="font-headline text-xl">Guia de Gratidão</h2>
+            </div>
+          </header>
+          <ScrollArea className="flex-1 p-6">
+            <div className="space-y-8 pb-20">
+              <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 text-center">
+                <HeartHandshake className="w-12 h-12 text-primary mx-auto mb-4" />
+                <h3 className="font-headline text-lg text-primary mb-2">Mérito por Ajuda Real</h3>
+                <p className="text-sm text-muted-foreground italic">
+                  No Portugal Unido, os pontos refletem o teu impacto real. Ganhas pontos apenas quando ajudas alguém.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2">Como Ganhar Pontos</h4>
+                <div className="grid gap-3">
+                  {[
+                    { label: "Ser aceite como ajudante", pts: "+10" },
+                    { label: "Tarefa marcada como resolvida", pts: "+20" },
+                    { label: "Resolver um SOS urgente", pts: "+30" },
+                    { label: "Partilha confirmada por alguém", pts: "+10" },
+                    { label: "Avaliação 5 Estrelas", pts: "+15" },
+                    { label: "Avaliação 4 Estrelas", pts: "+10" },
+                    { label: "Avaliação 3 Estrelas", pts: "+5" },
+                    { label: "Grupo atingir 5 membros ativos", pts: "+25" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-secondary/20 rounded-2xl border border-transparent hover:border-primary/20 transition-all">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-bold">{item.label}</span>
+                      </div>
+                      <span className="text-primary font-black text-sm">{item.pts} pts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase text-destructive tracking-widest border-b pb-2">Ações que NÃO dão Pontos</h4>
+                <div className="grid gap-2">
+                  {[
+                    "Criar posts de qualquer tipo",
+                    "Comentar em publicações",
+                    "Fazer login diário",
+                    "Completar o perfil",
+                    "Candidatar-se a tarefas",
+                    "Enviar mensagens no chat"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 px-3 bg-destructive/5 rounded-xl text-xs text-muted-foreground italic">
+                      <XCircle className="w-3.5 h-3.5 text-destructive/40" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-center text-muted-foreground mt-4 leading-relaxed">
+                  Trabalhamos para garantir que o selo de confiança seja um reflexo honesto da entreajuda na nossa comunidade.
+                </p>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+      )}
 
       {showSettings && (
         <div className="fixed inset-0 z-[110] bg-white animate-in slide-in-from-right duration-300 flex flex-col">
@@ -354,10 +430,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
                       <UserIcon className="w-3 h-3" /> Nome Completo
                     </Label>
-                    <Input 
+                    <input 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                       value={editData.fullName} 
                       onChange={e => setEditData({...editData, fullName: e.target.value})}
-                      className="rounded-xl"
                     />
                   </div>
 
@@ -396,10 +472,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs font-black uppercase text-muted-foreground">Zona/Bairro</Label>
-                      <Input 
+                      <input 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                         value={editData.zone} 
                         onChange={e => setEditData({...editData, zone: e.target.value})}
-                        className="rounded-xl"
                       />
                     </div>
                   </div>
@@ -408,11 +484,11 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                     <Label className="text-xs font-black uppercase text-muted-foreground flex items-center gap-2">
                       <Phone className="w-3 h-3" /> Telemóvel (+351)
                     </Label>
-                    <Input 
+                    <input 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                       value={editData.phoneNumber} 
                       onChange={e => setEditData({...editData, phoneNumber: e.target.value})}
                       placeholder="912 345 678"
-                      className="rounded-xl"
                     />
                   </div>
                 </div>
@@ -427,7 +503,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                       <Mail className="w-3 h-3" /> Email de Registo
                     </Label>
                     <div className="relative">
-                      <Input value={userProfile.email} disabled className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10" />
+                      <input value={userProfile.email} disabled className="flex h-10 w-full rounded-md border border-input bg-secondary/30 px-3 py-2 text-sm cursor-not-allowed pr-10" />
                       <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     </div>
                   </div>
@@ -437,7 +513,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                       <AtSign className="w-3 h-3" /> Nome de Utilizador
                     </Label>
                     <div className="relative">
-                      <Input value={userProfile.username} disabled className="rounded-xl bg-secondary/30 cursor-not-allowed pr-10 font-medium" />
+                      <input value={userProfile.username} disabled className="flex h-10 w-full rounded-md border border-input bg-secondary/30 px-3 py-2 text-sm cursor-not-allowed pr-10 font-medium" />
                       <Lock className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     </div>
                   </div>

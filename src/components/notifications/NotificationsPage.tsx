@@ -7,7 +7,7 @@ import { ArrowLeft, CheckCircle2, HandHeart, AlertTriangle, Share2, Calendar, X,
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, where, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, where, getDocs, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { getTrustLevel } from '@/lib/trust-levels';
 import SafetyWarningModal from '../security/SafetyWarningModal';
@@ -58,10 +58,15 @@ export default function NotificationsPage({ onClose, onProfileClick, onAction }:
         helperUsername: notif.applicantUsername || 'Ajudante'
       });
 
+      // REGRA: Ser aceite como ajudante dá 10 pontos
+      await updateDoc(doc(db, 'users', notif.applicantId), {
+        points: increment(10)
+      });
+
       await addDoc(collection(db, 'users', notif.applicantId, 'notifications'), {
         userId: notif.applicantId,
         type: 'accepted',
-        message: `A tua candidatura para ajudar foi aceite! Já podes conversar com o autor no chat.`,
+        message: `A tua candidatura para ajudar foi aceite! Ganhaste +10 pts de gratidão. Já podes conversar no chat.`,
         postId: notif.postId,
         isRead: false,
         timestamp: new Date().toISOString()

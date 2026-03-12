@@ -163,8 +163,18 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         const oldAverage = helperData.averageRating || 0;
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
         
+        // NOVO SISTEMA DE PONTOS
+        let pointsToAward = 20; // Tarefa resolvida: +20 pts
+        if (post.type === 'SOS') pointsToAward += 30; // Resolver SOS: +30 pts
+        if (post.type === 'Partilha') pointsToAward += 10; // Partilha aceite/confirmada: +10 pts
+        
+        // Bónus de Avaliação
+        if (rating === 5) pointsToAward += 15;
+        else if (rating === 4) pointsToAward += 10;
+        else if (rating === 3) pointsToAward += 5;
+
         const updateObj: any = {
-          points: increment(50),
+          points: increment(pointsToAward),
           helpsGiven: increment(1),
           totalRatings: totalRatings,
           averageRating: newAverage
@@ -187,7 +197,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
       toast({
         title: "Problema Resolvido!",
-        description: "A ajuda foi concluída e o ajudante recebeu os pontos.",
+        description: `A ajuda foi concluída. O ajudante recebeu os pontos de mérito.`,
       });
       setIsRatingOpen(false);
       onBack();

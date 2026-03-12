@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, LogIn, Hash } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, increment } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 
@@ -58,7 +59,22 @@ export default function JoinGroup({ onClose }: { onClose: () => void }) {
         groupsJoined: increment(1)
       });
 
-      // Verificar badges após entrar no grupo
+      // REGRA: Criar grupo que atinge 5 membros dá 25 pontos ao admin
+      const updatedGroupSnap = await getDoc(doc(db, "groups", groupDoc.id));
+      const updatedGroupData = updatedGroupSnap.data();
+      if (updatedGroupData && updatedGroupData.memberIds.length === 5) {
+        await updateDoc(doc(db, "users", updatedGroupData.adminId), {
+          points: increment(25)
+        });
+        await addDoc(collection(db, 'users', updatedGroupData.adminId, 'notifications'), {
+          userId: updatedGroupData.adminId,
+          type: 'badge',
+          message: `O teu grupo "${updatedGroupData.name}" atingiu 5 membros! Ganhaste +25 pts de gratidão.`,
+          isRead: false,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       await checkAndAwardBadges(db, user.uid);
       
       toast({
