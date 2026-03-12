@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Send, CheckCircle2, ExternalLink, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, increment } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, deleteDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -59,14 +59,18 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const updateTypingStatus = async (isTyping: boolean) => {
     if (!user || !chatId) return;
     const typingDocRef = doc(db, 'chats', chatId, 'typing', user.uid);
-    if (isTyping) {
-      await setDoc(typingDocRef, {
-        isTyping: true,
-        username: post.authorId === user.uid ? post.authorUsername : (post.helperUsername || 'Ajudante'),
-        timestamp: serverTimestamp()
-      }, { merge: true });
-    } else {
-      await setDoc(typingDocRef, { isTyping: false }, { merge: true });
+    try {
+      if (isTyping) {
+        await setDoc(typingDocRef, {
+          isTyping: true,
+          username: post.authorId === user.uid ? post.authorUsername : (post.helperUsername || 'Ajudante'),
+          timestamp: serverTimestamp()
+        }, { merge: true });
+      } else {
+        await setDoc(typingDocRef, { isTyping: false }, { merge: true });
+      }
+    } catch (e) {
+      // Ignora erros de permissão silenciosamente para o typing
     }
   };
 
@@ -89,31 +93,35 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     setText('');
     updateTypingStatus(false);
     
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      text: msg,
-      authorId: user.uid,
-      authorName: user.displayName || user.email?.split('@')[0],
-      timestamp: new Date().toISOString()
-    });
-
-    const isAuthor = post.authorId === user.uid;
-    const recipientId = isAuthor ? post.helperId : post.authorId;
-
-    if (recipientId) {
-      await addDoc(collection(db, 'users', recipientId, 'notifications'), {
-        userId: recipientId,
-        type: 'chat_message',
-        message: `Nova mensagem de ${isAuthor ? post.authorUsername : (post.helperUsername || 'Ajudante')}`,
-        postId: post.id,
-        chatId: chatId,
-        isRead: false,
+    try {
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        text: msg,
+        authorId: user.uid,
+        authorName: user.displayName || user.email?.split('@')[0],
         timestamp: new Date().toISOString()
       });
+
+      const isAuthor = post.authorId === user.uid;
+      const recipientId = isAuthor ? post.helperId : post.authorId;
+
+      if (recipientId) {
+        await addDoc(collection(db, 'users', recipientId, 'notifications'), {
+          userId: recipientId,
+          type: 'chat_message',
+          message: `Nova mensagem de ${isAuthor ? post.authorUsername : (post.helperUsername || 'Ajudante')}`,
+          postId: post.id,
+          chatId: chatId,
+          isRead: false,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao enviar mensagem" });
     }
   };
 
   const finalizeResolution = async () => {
-    if (!user || !post.helperId) return;
+    if (!user || !post.helperId || isResolving) return;
     setIsResolving(true);
     
     try {
@@ -136,10 +144,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         timestamp: new Date().toISOString()
       });
 
-      // 3. Atualizar perfil do ajudante (pontos, ajudas, rating)
+      // 3. Obter dados atuais do ajudante para atualizar média
       const helperRef = doc(db, 'users', post.helperId);
-      const helperSnap = await getDocs(query(collection(db, 'users'), where('id', '==', post.helperId)));
-      const helperData = helperSnap.docs[0]?.data();
+      const helperSnap = await getDoc(helperRef);
+      const helperData = helperSnap.data();
       
       if (helperData) {
         const totalRatings = (helperData.totalRatings || 0) + 1;
@@ -165,12 +173,13 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
       toast({
         title: "Problema Resolvido!",
-        description: "Obrigado por ajudar a manter a comunidade unida.",
+        description: "Ajudaste a comunidade e o ajudante recebeu os seus pontos.",
       });
+      setIsRatingOpen(false);
       onBack();
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Erro ao resolver" });
+      toast({ variant: "destructive", title: "Erro ao finalizar ajuda" });
     } finally {
       setIsResolving(false);
     }
@@ -179,16 +188,18 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   React.useEffect(() => {
     if (!user || !chatId) return;
     const clearNotifs = async () => {
-      const q = query(
-        collection(db, 'users', user.uid, 'notifications'),
-        where('postId', '==', post.id),
-        where('type', '==', 'chat_message'),
-        where('isRead', '==', false)
-      );
-      const snap = await getDocs(q);
-      snap.forEach(d => {
-        updateDoc(d.ref, { isRead: true });
-      });
+      try {
+        const q = query(
+          collection(db, 'users', user.uid, 'notifications'),
+          where('postId', '==', post.id),
+          where('type', '==', 'chat_message'),
+          where('isRead', '==', false)
+        );
+        const snap = await getDocs(q);
+        snap.forEach(d => {
+          updateDoc(d.ref, { isRead: true });
+        });
+      } catch (e) {}
     };
     clearNotifs();
 
@@ -224,7 +235,12 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           </div>
         </div>
         {isAuthor && post.status !== 'resolvido' && (
-          <Button size="sm" variant="outline" className="h-8 text-[10px] border-primary text-primary" onClick={() => setIsRatingOpen(true)}>
+          <Button 
+            size="sm" 
+            variant="default" 
+            className="h-8 text-[10px] bg-primary text-white font-bold" 
+            onClick={() => setIsRatingOpen(true)}
+          >
             <CheckCircle2 className="w-3 h-3 mr-1" /> Resolvido
           </Button>
         )}
@@ -281,7 +297,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       </div>
 
       <Dialog open={isRatingOpen} onOpenChange={setIsRatingOpen}>
-        <DialogContent className="max-w-[400px] rounded-3xl">
+        <DialogContent className="max-w-[400px] rounded-3xl" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Avalia a ajuda de {otherName}</DialogTitle>
             <DialogDescription>
@@ -294,6 +310,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
               {[1, 2, 3, 4, 5].map((star) => (
                 <button 
                   key={star} 
+                  type="button"
                   onClick={() => setRating(star)}
                   className="transition-transform active:scale-90"
                 >
@@ -314,7 +331,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
           <DialogFooter className="flex-row gap-2">
             <Button variant="ghost" className="flex-1" onClick={() => setIsRatingOpen(false)}>Ainda não</Button>
-            <Button className="flex-1 bg-accent hover:bg-accent/90" onClick={finalizeResolution} disabled={isResolving}>
+            <Button className="flex-1 bg-accent hover:bg-accent/90 text-white font-bold" onClick={finalizeResolution} disabled={isResolving}>
               {isResolving ? "A guardar..." : "Confirmar e Resolver"}
             </Button>
           </DialogFooter>
