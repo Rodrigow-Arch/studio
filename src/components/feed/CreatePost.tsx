@@ -38,14 +38,12 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   const [loading, setLoading] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   
-  // Novos campos para pagamento (apenas público)
   const [recompensa, setRecompensa] = React.useState<string>('');
   const [metodoPagamento, setMetodoPagamento] = React.useState<string>('Dinheiro');
 
   const handleCreate = async () => {
     if (!texto || !user || !userProfile) return;
     
-    // Validação de pagamento se valor for inserido
     const valorNum = parseFloat(recompensa);
     if (!groupId && !isNaN(valorNum) && valorNum > 0 && !metodoPagamento) {
       toast({ variant: "destructive", title: "Erro", description: "Seleciona um método de pagamento." });
@@ -72,7 +70,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
         timestamp: new Date().toISOString(),
         groupId: groupId || null, 
         isPublic: !groupId,
-        // Dados de pagamento (opcionais)
         paymentAmount: !groupId && !isNaN(valorNum) ? valorNum : 0,
         paymentMethod: !groupId && !isNaN(valorNum) && valorNum > 0 ? metodoPagamento : null
       };
@@ -116,8 +113,8 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-end justify-center p-4 animate-in fade-in">
-      <Card className="w-full max-w-sm mb-20 animate-in slide-in-from-bottom-8 duration-300 flex flex-col max-h-[90vh] shadow-2xl border-primary/10">
+    <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+      <Card className="w-full max-w-sm animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] shadow-2xl border-primary/10">
         <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0 bg-primary/5 rounded-t-xl">
           <div className="flex items-center gap-2">
             {groupId && <Shield className="w-4 h-4 text-primary" />}
@@ -153,7 +150,6 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
               />
             </div>
 
-            {/* Funcionalidade de Pagamento apenas para Posts Públicos */}
             {!groupId && (
               <div className="space-y-3 p-3 bg-secondary/10 rounded-2xl border border-dashed border-primary/20">
                 <div className="flex items-center justify-between">

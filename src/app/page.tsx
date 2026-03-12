@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -82,14 +83,15 @@ export default function Home() {
       case 'groups':
         return <GroupsPage />;
       case 'add':
-        return <Feed initialShowCreate={true} onCreated={() => setActiveTab('feed')} onProfileClick={handleProfileClick} />;
+        // Adicionamos uma key para forçar o re-mount do componente Feed e abrir o formulário
+        return <Feed key="add-tab-feed" initialShowCreate={true} onCreated={() => setActiveTab('feed')} onProfileClick={handleProfileClick} />;
       case 'messages':
         return <ChatList onProfileClick={handleProfileClick} />;
       case 'profile':
         return <ProfilePage userId={user.uid} />;
       case 'feed':
       default:
-        return <Feed onProfileClick={handleProfileClick} />;
+        return <Feed key="feed-tab-feed" onProfileClick={handleProfileClick} />;
     }
   };
 
