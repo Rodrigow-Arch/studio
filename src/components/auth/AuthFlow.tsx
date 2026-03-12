@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff } from "lucide-react";
+import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -278,10 +278,19 @@ export default function AuthFlow() {
                 </div>
               </div>
               {error && <p className="text-xs text-destructive font-bold">{error}</p>}
-              <Button className="w-full h-12 rounded-2xl font-bold text-md" onClick={handleLogin} disabled={loading}>
+              <Button className="w-full h-12 rounded-2xl font-bold text-md shadow-lg shadow-primary/10" onClick={handleLogin} disabled={loading}>
                 {loading ? "A entrar..." : "Entrar"}
               </Button>
-              <Button variant="link" className="w-full text-xs" onClick={() => setMode('register')}>Não tens conta? Cria uma agora</Button>
+              
+              <div className="pt-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-sm" 
+                  onClick={() => setMode('register')}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" /> Não tens conta? Cria uma agora
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -488,9 +497,13 @@ export default function AuthFlow() {
               </Card>
             )}
 
-            <div className="text-center pt-2">
-              <Button variant="link" className="text-xs text-muted-foreground" onClick={() => setMode('login')}>
-                Já tens uma conta? Faz login
+            <div className="pt-4 text-center">
+              <Button 
+                variant="outline" 
+                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-sm" 
+                onClick={() => setMode('login')}
+              >
+                <LogIn className="w-4 h-4 mr-2" /> Já tens uma conta? Faz login
               </Button>
             </div>
           </div>
