@@ -13,7 +13,8 @@ import {
   MapPin, Award, ThumbsUp, LogOut, MessageCircle, ArrowLeft, Save, 
   Sparkles, User as UserIcon, CalendarDays,
   Send, MessageSquareQuote, ChevronDown, ChevronUp,
-  Settings, Trash, AlertTriangle, FileText, Instagram, Youtube, Facebook, Twitter, Globe, Link as LinkIcon, Plus, Trash2, ShieldCheck, X
+  Settings, Trash, AlertTriangle, FileText, Instagram, Youtube, Facebook, Twitter, Globe, Link as LinkIcon, Plus, Trash2, ShieldCheck, X,
+  BadgeCheck
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -410,8 +411,11 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
             </AvatarFallback>
           </Avatar>
           <div className="space-y-1 animate-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-1.5">
               <h2 className="font-headline text-2xl text-primary">{userProfile.fullName}</h2>
+              {userProfile.username === '@faroltech' && (
+                <BadgeCheck className="w-6 h-6 text-[#0095f6] fill-[#0095f6]/10 shrink-0" />
+              )}
               {trustLevel && (
                 <span title={trustLevel.label} className="text-2xl">{trustLevel.icon}</span>
               )}
@@ -524,9 +528,12 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
                     </Avatar>
                     <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-black text-primary cursor-pointer hover:underline" onClick={() => handleMuralAuthorClick(pc.authorId)}>
-                          {pc.authorUsername}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-black text-primary cursor-pointer hover:underline" onClick={() => handleMuralAuthorClick(pc.authorId)}>
+                            {pc.authorUsername}
+                          </span>
+                          {pc.authorUsername === '@faroltech' && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
+                        </div>
                         <span className="text-[8px] text-muted-foreground">
                           {formatDistanceToNow(new Date(pc.timestamp), { addSuffix: true, locale: pt })}
                         </span>

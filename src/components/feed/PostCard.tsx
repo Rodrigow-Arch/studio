@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, 
   Wallet, ShieldCheck, Lock, Zap, 
-  ChevronDown, ChevronUp 
+  ChevronDown, ChevronUp, BadgeCheck
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -179,6 +179,9 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-bold text-xs truncate max-w-[120px] group-hover:text-primary transition-colors">{post.authorUsername}</span>
+              {post.authorUsername === '@faroltech' && (
+                <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6] shrink-0" />
+              )}
               {trustLevel && (
                 <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase shrink-0`}>
                   {trustLevel.icon} {trustLevel.label}
@@ -333,12 +336,15 @@ function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick
       </Avatar>
       <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm border border-secondary/20 hover:border-primary/20 transition-colors">
         <div className="flex items-center gap-1 mb-0.5">
-          <span 
-            className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
-            onClick={() => onProfileClick(comment.authorId)}
-          >
-            {comment.authorUsername}
-          </span>
+          <div className="flex items-center gap-1">
+            <span 
+              className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
+              onClick={() => onProfileClick(comment.authorId)}
+            >
+              {comment.authorUsername}
+            </span>
+            {comment.authorUsername === '@faroltech' && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
+          </div>
           {trustLevel && (
             <span className="text-[8px]" title={trustLevel.label}>{trustLevel.icon}</span>
           )}

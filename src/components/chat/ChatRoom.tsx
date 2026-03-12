@@ -1,10 +1,11 @@
+
 "use client";
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, CheckCircle2, Star, Trash2, XCircle } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, Star, Trash2, XCircle, BadgeCheck } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc, deleteDoc } from "firebase/firestore";
 import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
@@ -328,6 +329,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
   const otherName = isAuthor ? (post.helperUsername || 'Ajudante') : post.authorUsername;
   const trustLevel = otherProfile ? getTrustLevel(otherProfile.points || 0) : null;
   const isOnline = otherProfile ? isUserOnline(otherProfile.lastActive) : false;
+  const isOtherVerified = otherProfile?.username === '@faroltech';
 
   return (
     <div className="absolute inset-0 z-[60] bg-background flex flex-col w-full h-full">
@@ -345,8 +347,11 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
               </AvatarFallback>
             </Avatar>
             <div className="cursor-pointer min-w-0" onClick={() => otherId && onProfileClick?.(otherId)}>
-              <div className="flex items-center gap-0.5 min-w-0">
-                <p className="text-xs font-bold leading-none hover:text-primary transition-colors truncate">{otherName}</p>
+              <div className="flex items-center gap-1 min-w-0">
+                <div className="flex items-center gap-0.5 min-w-0">
+                  <p className="text-xs font-bold leading-none hover:text-primary transition-colors truncate">{otherName}</p>
+                  {isOtherVerified && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
+                </div>
                 {trustLevel && <span className="text-xs" title={trustLevel.label}>{trustLevel.icon}</span>}
               </div>
               <div className="flex items-center gap-1">
