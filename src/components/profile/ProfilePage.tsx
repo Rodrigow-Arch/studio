@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -13,7 +14,7 @@ import {
   Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
   ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
   Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
-  Send, MessageSquareQuote, ChevronDown, ChevronUp
+  Send, MessageSquareQuote, ChevronDown, ChevronUp, Image as ImageIcon
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -30,6 +31,7 @@ import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import ImageCropper from '@/components/profile/ImageCropper';
 import { filterProfanity } from '@/lib/utils';
+import Image from 'next/image';
 
 interface SocialLink {
   platform: string;
@@ -55,10 +57,16 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
+  
   const [imageToCrop, setImageToCrop] = React.useState<string | null>(null);
+  const [cropAspect, setCropAspect] = React.useState(1);
+  const [cropTarget, setCropTarget] = React.useState<'photo' | 'banner'>('photo');
+
   const [newProfileComment, setNewProfileComment] = React.useState('');
   const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
+  
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const bannerInputRef = React.useRef<HTMLInputElement>(null);
 
   const targetUid = userId || currentUser?.uid;
   const isOwnProfile = targetUid === currentUser?.uid;
@@ -76,6 +84,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     zone: '',
     phoneNumber: '',
     photoUrl: '',
+    bannerUrl: '',
     socialLinks: [] as SocialLink[]
   });
 
@@ -104,6 +113,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         zone: userProfile.zone || '',
         phoneNumber: userProfile.phoneNumber || '',
         photoUrl: userProfile.photoUrl || '',
+        bannerUrl: userProfile.bannerUrl || '',
         socialLinks: userProfile.socialLinks || []
       });
     }
@@ -154,6 +164,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         zone: editData.zone,
         phoneNumber: editData.phoneNumber,
         photoUrl: editData.photoUrl,
+        bannerUrl: editData.bannerUrl,
         socialLinks: editData.socialLinks
       });
       
@@ -209,11 +220,13 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, target: 'photo' | 'banner') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        setCropTarget(target);
+        setCropAspect(target === 'photo' ? 1 : 16 / 9);
         setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -221,7 +234,11 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   };
 
   const handleCropComplete = (croppedImage: string) => {
-    setEditData(prev => ({ ...prev, photoUrl: croppedImage }));
+    if (cropTarget === 'photo') {
+      setEditData(prev => ({ ...prev, photoUrl: croppedImage }));
+    } else {
+      setEditData(prev => ({ ...prev, bannerUrl: croppedImage }));
+    }
     setImageToCrop(null);
   };
 
@@ -304,8 +321,20 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
-      <div className="bg-primary h-32 relative overflow-hidden">
-         <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+      <div className="h-40 relative overflow-hidden bg-primary">
+         {userProfile.bannerUrl ? (
+           <Image 
+             src={userProfile.bannerUrl} 
+             alt="Banner" 
+             fill 
+             className="object-cover" 
+             priority
+           />
+         ) : (
+           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+         )}
+         <div className="absolute inset-0 bg-black/20" />
+         
          <div className="absolute top-4 left-4 flex gap-2 z-10">
             {onBack && (
               <Button variant="ghost" size="icon" className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all" onClick={onBack}>
@@ -318,7 +347,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all text-destructive-foreground hover:bg-primary transition-all"
+                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all text-destructive-foreground hover:bg-primary"
                 onClick={() => setIsReportOpen(true)}
               >
                 <Flag className="w-5 h-5" />
@@ -332,9 +361,9 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
          </div>
       </div>
 
-      <div className="px-6 -mt-12 space-y-6 pb-24 relative z-10">
+      <div className="px-6 -mt-16 space-y-6 pb-24 relative z-10">
         <div className="flex flex-col items-center text-center space-y-3">
-          <Avatar className="w-24 h-24 border-4 border-white shadow-xl hover:scale-105 transition-transform duration-300">
+          <Avatar className="w-28 h-28 border-4 border-white shadow-xl hover:scale-105 transition-transform duration-300">
             {userProfile.photoUrl && <AvatarImage src={userProfile.photoUrl} className="object-cover" />}
             <AvatarFallback className="text-white text-4xl font-headline" style={{ backgroundColor: userProfile.avatarColor }}>
               {userProfile.avatarLetter}
@@ -637,26 +666,63 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
            <ScrollArea className="flex-1">
              <div className="p-6 space-y-8 pb-24">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <Avatar className="w-24 h-24 border-2 border-primary/20">
-                      {editData.photoUrl && <AvatarImage src={editData.photoUrl} className="object-cover" />}
-                      <AvatarFallback className="text-2xl font-bold" style={{ backgroundColor: userProfile.avatarColor }}>
-                        {userProfile.avatarLetter}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Camera className="text-white w-6 h-6" />
+                <div className="space-y-6">
+                  <h3 className="text-xs font-black uppercase text-primary tracking-widest border-b pb-2 flex items-center justify-between">
+                    Banner e Foto de Perfil <Camera className="w-4 h-4" />
+                  </h3>
+                  
+                  <div className="flex flex-col gap-6">
+                    {/* Banner Edit Section */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase text-muted-foreground">Banner do Perfil</Label>
+                      <div 
+                        className="h-32 rounded-2xl bg-secondary relative overflow-hidden group cursor-pointer border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 transition-all"
+                        onClick={() => bannerInputRef.current?.click()}
+                      >
+                        {editData.bannerUrl ? (
+                          <Image src={editData.bannerUrl} alt="Banner Preview" fill className="object-cover" />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/60">
+                            <ImageIcon className="w-8 h-8 mb-1" />
+                            <span className="text-[10px] uppercase font-black">Adicionar Banner</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="text-white w-6 h-6" />
+                        </div>
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={bannerInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => handleFileChange(e, 'banner')} 
+                      />
+                    </div>
+
+                    {/* Photo Edit Section */}
+                    <div className="flex flex-col items-center gap-3 pt-2">
+                      <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                        <Avatar className="w-24 h-24 border-2 border-primary/20 shadow-md">
+                          {editData.photoUrl && <AvatarImage src={editData.photoUrl} className="object-cover" />}
+                          <AvatarFallback className="text-2xl font-bold" style={{ backgroundColor: userProfile.avatarColor }}>
+                            {userProfile.avatarLetter}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="text-white w-6 h-6" />
+                        </div>
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => handleFileChange(e, 'photo')} 
+                      />
+                      <p className="text-[10px] text-muted-foreground uppercase font-black">Foto de Perfil</p>
                     </div>
                   </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleFileChange} 
-                  />
-                  <p className="text-[10px] text-muted-foreground uppercase font-black">Alterar Foto de Perfil</p>
                 </div>
 
                 <div className="space-y-6">
@@ -824,9 +890,48 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
       <ImageCropper 
         image={imageToCrop} 
+        aspect={cropAspect}
         onCropComplete={handleCropComplete} 
         onCancel={() => setImageToCrop(null)} 
       />
+    </div>
+  );
+}
+
+function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick: (uid: string) => void }) {
+  const db = useFirestore();
+  const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
+  const { data: authorProfile } = useDoc(authorRef);
+  const trustLevel = getTrustLevel(authorProfile?.points || comment.authorPoints || 0);
+
+  return (
+    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300 group">
+      <Avatar 
+        className="w-7 h-7 shrink-0 cursor-pointer hover:scale-110 transition-transform shadow-sm" 
+        onClick={() => onProfileClick(comment.authorId)}
+      >
+        {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
+        <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: comment.authorAvatarColor || '#e2e8f0' }}>
+          {comment.authorAvatarLetter}
+        </AvatarFallback>
+      </Avatar>
+      <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm border border-secondary/20 hover:border-primary/20 transition-colors">
+        <div className="flex items-center gap-1 mb-0.5">
+          <span 
+            className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
+            onClick={() => onProfileClick(comment.authorId)}
+          >
+            {comment.authorUsername}
+          </span>
+          {trustLevel && (
+            <span className="text-[8px]" title={trustLevel.label}>{trustLevel.icon}</span>
+          )}
+          <span className="text-[8px] text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
+          </span>
+        </div>
+        <p className="text-muted-foreground leading-snug">{comment.text}</p>
+      </div>
     </div>
   );
 }

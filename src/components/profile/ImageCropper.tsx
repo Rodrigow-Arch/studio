@@ -11,11 +11,12 @@ import { ZoomIn, ZoomOut, Check } from 'lucide-react';
 
 interface ImageCropperProps {
   image: string | null;
+  aspect?: number;
   onCropComplete: (croppedImage: string) => void;
   onCancel: () => void;
 }
 
-export default function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperProps) {
+export default function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: ImageCropperProps) {
   const [crop, setCrop] = React.useState({ x: 0, y: 0 });
   const [zoom, setZoom] = React.useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = React.useState<Area | null>(null);
@@ -56,8 +57,8 @@ export default function ImageCropper({ image, onCropComplete, onCancel }: ImageC
             image={image}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
+            aspect={aspect}
+            cropShape={aspect === 1 ? "round" : "rect"}
             showGrid={false}
             onCropChange={onCropChange}
             onCropComplete={onCropCompleteInternal}
