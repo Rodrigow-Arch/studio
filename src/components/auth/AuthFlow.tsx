@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -8,14 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DISTRITOS_PORTUGAL } from "@/lib/geo";
-import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff } from "lucide-react";
+import { MapPin, CheckCircle2, ArrowRight, Camera, Sparkles, Eye, EyeOff, ShieldCheck, Scale } from "lucide-react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { generateBioDescription } from "@/ai/flows/bio-description-generation-flow";
 import ImageCropper from '@/components/profile/ImageCropper';
+import LegalModal from '@/components/legal/LegalModals';
+import CookieBanner from '@/components/legal/CookieBanner';
 
 export default function AuthFlow() {
   const { toast } = useToast();
@@ -37,7 +41,8 @@ export default function AuthFlow() {
     photoUrl: '',
     description: '',
     lat: 38.7223,
-    lng: -9.1393
+    lng: -9.1393,
+    acceptTerms: false
   });
 
   const [loading, setLoading] = React.useState(false);
@@ -47,12 +52,18 @@ export default function AuthFlow() {
   
   const [showLoginPassword, setShowLoginPassword] = React.useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
+  
+  const [legalModal, setLegalModal] = React.useState<{ isOpen: boolean; type: 'terms' | 'privacy' }>({
+    isOpen: false,
+    type: 'terms'
+  });
 
   const handleNext = () => {
     setError('');
     if (step === 1) {
       if (!formData.email.includes('@')) return setError('Email inválido');
       if (formData.password.length < 6) return setError('Senha deve ter pelo menos 6 caracteres');
+      if (!formData.acceptTerms) return setError('Tens de aceitar os Termos e Condições para continuar.');
     }
     if (step === 2) {
       if (!formData.name) return setError('Nome é obrigatório');
@@ -127,6 +138,7 @@ export default function AuthFlow() {
         avatarLetter: formData.name.charAt(0).toUpperCase(),
         avatarColor: avatarCor,
         joinedTimestamp: new Date().toISOString(),
+        termsAcceptedAt: new Date().toISOString(),
         socialLinks: []
       };
 
@@ -215,8 +227,8 @@ export default function AuthFlow() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-      <div className="w-full max-sm space-y-8">
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background relative overflow-hidden">
+      <div className="w-full max-sm space-y-8 z-10">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-24 h-24 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-black/5 animate-in zoom-in duration-500">
             <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
@@ -312,11 +324,23 @@ export default function AuthFlow() {
                         )}
                       </button>
                     </div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full transition-all ${formData.password.length > 8 ? 'bg-accent w-full' : formData.password.length >= 6 ? 'bg-yellow-400 w-2/3' : 'bg-destructive w-1/3'}`} />
-                    </div>
                   </div>
-                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext}>Continuar <ArrowRight className="ml-2 w-4 h-4" /></Button>
+
+                  <div className="flex items-start space-x-3 pt-2">
+                    <Checkbox 
+                      id="terms" 
+                      checked={formData.acceptTerms} 
+                      onCheckedChange={(checked) => setFormData({...formData, acceptTerms: checked as boolean})} 
+                      className="mt-1"
+                    />
+                    <Label htmlFor="terms" className="text-[11px] leading-tight text-muted-foreground font-medium">
+                      Li e aceito os <button type="button" onClick={() => setLegalModal({ isOpen: true, type: 'terms' })} className="text-primary font-bold hover:underline">Termos e Condições</button> e a <button type="button" onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })} className="text-primary font-bold hover:underline">Política de Privacidade</button>.
+                    </Label>
+                  </div>
+
+                  <Button className="w-full h-12 rounded-2xl font-bold" onClick={handleNext} disabled={!formData.acceptTerms}>
+                    Continuar <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -472,6 +496,18 @@ export default function AuthFlow() {
             </div>
           </div>
         )}
+        
+        {/* Rodapé Legal */}
+        <footer className="pt-8 pb-12 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+            <button onClick={() => setLegalModal({ isOpen: true, type: 'terms' })} className="hover:text-primary transition-colors">Termos e Condições</button>
+            <span>•</span>
+            <button onClick={() => setLegalModal({ isOpen: true, type: 'privacy' })} className="hover:text-primary transition-colors">Privacidade</button>
+            <span>•</span>
+            <a href="mailto:legal@portugalunido.pt" className="hover:text-primary transition-colors">Contacto</a>
+          </div>
+          <p className="text-[9px] text-muted-foreground/50 font-medium">© 2025 Portugal Unido • Feito com 🤝 em Portugal</p>
+        </footer>
       </div>
 
       <ImageCropper 
@@ -479,6 +515,14 @@ export default function AuthFlow() {
         onCropComplete={handleCropComplete} 
         onCancel={() => setImageToCrop(null)} 
       />
+
+      <LegalModal 
+        isOpen={legalModal.isOpen} 
+        type={legalModal.type} 
+        onClose={() => setLegalModal({ ...legalModal, isOpen: false })} 
+      />
+
+      <CookieBanner />
     </div>
   );
 }
