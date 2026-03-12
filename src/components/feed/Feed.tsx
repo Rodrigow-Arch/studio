@@ -11,17 +11,14 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 
 interface FeedProps {
-  initialShowCreate?: boolean;
-  onCreated?: () => void;
   onProfileClick: (uid: string) => void;
 }
 
-export default function Feed({ initialShowCreate = false, onCreated, onProfileClick }: FeedProps) {
+export default function Feed({ onProfileClick }: FeedProps) {
   const db = useFirestore();
-  const [showCreate, setShowCreate] = React.useState(initialShowCreate);
+  const [showCreate, setShowCreate] = React.useState(false);
   const [filterType, setFilterType] = React.useState<string>('Tudo');
 
-  // Simplificamos a query para evitar necessidade de índices compostos manuais
   const postsQuery = useMemoFirebase(() => {
     return query(
       collection(db, 'posts'), 
@@ -31,18 +28,15 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
 
   const { data: allPosts, isLoading } = useCollection(postsQuery);
 
-  // Filtragem no cliente para garantir funcionamento sem índices complexos
   const filteredPosts = React.useMemo(() => {
     if (!allPosts) return [];
     
     const now = new Date();
     
     return allPosts.filter(p => {
-      // Apenas posts fora de grupos (públicos) ou explicitamente marcados como públicos
       const isPublic = !p.groupId || p.isPublic;
       const matchesType = filterType === 'Tudo' || p.type === filterType;
       
-      // Filtro de expiração para resolvidos
       if (p.status === 'resolvido' && p.expiresAt) {
         const expiresAt = new Date(p.expiresAt);
         if (now > expiresAt) return false;
@@ -92,10 +86,7 @@ export default function Feed({ initialShowCreate = false, onCreated, onProfileCl
       </div>
 
       {showCreate && (
-        <CreatePost onClose={() => {
-          setShowCreate(false);
-          if (onCreated) onCreated();
-        }} />
+        <CreatePost onClose={() => setShowCreate(false)} />
       )}
 
       <div className="space-y-4 pb-20">

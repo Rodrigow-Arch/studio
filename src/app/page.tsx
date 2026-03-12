@@ -9,6 +9,7 @@ import ProfilePage from '@/components/profile/ProfilePage';
 import GroupsPage from '@/components/groups/GroupsPage';
 import ChatList from '@/components/chat/ChatList';
 import NotificationsPage from '@/components/notifications/NotificationsPage';
+import CreatePost from '@/components/feed/CreatePost';
 import { Header } from '@/components/layout/Header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -82,13 +83,11 @@ export default function Home() {
     switch (activeTab) {
       case 'groups':
         return <GroupsPage />;
-      case 'add':
-        // Adicionamos uma key para forçar o re-mount do componente Feed e abrir o formulário
-        return <Feed key="add-tab-feed" initialShowCreate={true} onCreated={() => setActiveTab('feed')} onProfileClick={handleProfileClick} />;
       case 'messages':
         return <ChatList onProfileClick={handleProfileClick} />;
       case 'profile':
         return <ProfilePage userId={user.uid} />;
+      case 'add':
       case 'feed':
       default:
         return <Feed key="feed-tab-feed" onProfileClick={handleProfileClick} />;
@@ -102,6 +101,10 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto pb-24">
         {renderContent()}
       </div>
+
+      {activeTab === 'add' && (
+        <CreatePost onClose={() => setActiveTab('feed')} />
+      )}
 
       {!viewingUserId && (
         <BottomNav activeTab={activeTab} onTabChange={(tab) => {

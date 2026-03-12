@@ -19,7 +19,7 @@ type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
 
 interface CreatePostProps {
   onClose: () => void;
-  groupId?: string; // Optional: If provided, the post is private to this group
+  groupId?: string; 
 }
 
 export default function CreatePost({ onClose, groupId }: CreatePostProps) {
@@ -113,8 +113,8 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-      <Card className="w-full max-w-sm animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] shadow-2xl border-primary/10">
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <Card className="w-full max-w-sm animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] shadow-2xl border-primary/10 bg-white">
         <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0 bg-primary/5 rounded-t-xl">
           <div className="flex items-center gap-2">
             {groupId && <Shield className="w-4 h-4 text-primary" />}
