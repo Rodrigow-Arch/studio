@@ -468,7 +468,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-[9px] font-black uppercase text-primary transition-all hover:bg-primary hover:text-white active:bg-accent"
+                className="h-7 text-[9px] font-black uppercase text-primary transition-all hover:bg-primary hover:text-white active:bg-primary"
                 onClick={() => setShowAllMural(!showAllMural)}
               >
                 {showAllMural ? (

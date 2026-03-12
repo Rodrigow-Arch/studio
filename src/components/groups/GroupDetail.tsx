@@ -424,7 +424,7 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full"
+                                className="h-8 w-8 text-destructive hover:bg-primary hover:text-white transition-all rounded-full"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <UserMinus className="w-4 h-4" />

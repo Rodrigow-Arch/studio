@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -33,7 +34,7 @@ export default function BadgeGrid({ userProfile }: BadgeGridProps) {
           variant="ghost" 
           size="sm" 
           onClick={() => setShowAll(!showAll)}
-          className="text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all active:bg-accent"
+          className="text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all active:bg-primary"
         >
           {showAll ? (
             <><ChevronUp className="w-4 h-4 mr-1" /> Ver menos</>
