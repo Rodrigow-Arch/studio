@@ -359,7 +359,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-full bg-background">
       <div className="h-40 relative overflow-hidden bg-primary">
          {userProfile.bannerUrl ? (
            <Image 
@@ -586,6 +586,41 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         type={legalModal.type} 
         onClose={() => setLegalModal({ ...legalModal, isOpen: false })} 
       />
+
+      <Dialog open={showPointsGuide} onOpenChange={setShowPointsGuide}>
+        <DialogContent className="max-w-[360px] rounded-3xl z-[200]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5 text-primary" /> Mérito Comunitário
+            </DialogTitle>
+            <DialogDescription className="text-xs pt-2">
+              Os teus pontos refletem a tua contribuição para a comunidade. Ganha pontos ajudando os teus vizinhos.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            {[
+              { label: "Ser aceite para ajudar", value: "+10 pts" },
+              { label: "Resolver uma Ajuda", value: "+20 pts" },
+              { label: "Resolver um SOS Urgente", value: "+50 pts" },
+              { label: "Comentar num Post", value: "+5 pts" },
+              { label: "Avaliação 5 Estrelas", value: "+15 pts" },
+              { label: "Grupo atingir 5 membros", value: "+25 pts" },
+            ].map((item, i) => (
+              <div key={i} className="flex justify-between items-center p-2.5 bg-secondary/20 rounded-xl border border-transparent hover:border-primary/10 transition-all">
+                <span className="text-[11px] font-bold">{item.label}</span>
+                <span className="text-[11px] font-black text-primary">{item.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button className="w-full rounded-xl font-bold" onClick={() => setShowPointsGuide(false)}>
+              Entendi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {showSettings && (
         <div className="fixed inset-0 z-[110] bg-white animate-in slide-in-from-right duration-300 flex flex-col">
