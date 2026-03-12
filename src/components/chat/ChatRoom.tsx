@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -15,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import EmergencyModal from '../security/EmergencyModal';
+import { filterProfanity } from '@/lib/utils';
 
 export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, onBack: () => void, onProfileClick?: (uid: string) => void }) {
   const { user } = useUser();
@@ -97,13 +97,16 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
   const handleSend = async () => {
     if (!text || !user) return;
-    const msg = text;
+    
+    // Aplicar filtro de profanidade
+    const cleanMsg = filterProfanity(text);
+    
     setText('');
     updateTypingStatus(false);
     
     try {
       await addDoc(collection(db, 'chats', chatId, 'messages'), {
-        text: msg,
+        text: cleanMsg,
         authorId: user.uid,
         authorName: user.displayName || user.email?.split('@')[0],
         timestamp: new Date().toISOString()
@@ -143,11 +146,14 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         expiresAt: expiresAt.toISOString()
       });
 
+      // Aplicar filtro no comentário de avaliação também
+      const cleanRatingComment = filterProfanity(ratingComment);
+
       const ratingRef = doc(collection(db, 'ratings'));
       batch.set(ratingRef, {
         id: ratingRef.id,
         stars: rating,
-        comment: ratingComment,
+        comment: cleanRatingComment,
         raterId: user.uid,
         raterUsername: post.authorUsername,
         ratedUserId: post.helperId,
@@ -263,10 +269,10 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
-      <header className="p-2 border-b bg-white flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1 min-w-0">
+      <header className="p-1 border-b bg-white flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-0.5 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 shrink-0"><ArrowLeft className="w-4 h-4" /></Button>
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1 min-w-0">
             <Avatar 
               className="w-7 h-7 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => otherId && onProfileClick?.(otherId)}
@@ -291,7 +297,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 px-2 text-[8px] text-destructive hover:bg-destructive/10 font-black border border-destructive/20 rounded-full"
+            className="h-7 px-1.5 text-[8px] text-destructive hover:bg-destructive/10 font-black border border-destructive/20 rounded-full"
             onClick={() => setIsEmergencyOpen(true)}
           >
             🆘 SOS
@@ -320,12 +326,12 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
             <React.Fragment key={msg.id}>
               {renderDateSeparator(msg, idx > 0 ? messages[idx - 1] : null)}
               <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[80%] p-2.5 rounded-2xl text-sm shadow-sm ${
-                  isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
+                <div className={`max-w-[80%] p-2 rounded-2xl text-sm shadow-sm border ${
+                  isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none'
                 }`}>
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
-                <p className="text-[8px] mt-0.5 text-muted-foreground px-1">
+                <p className="text-[8px] mt-1 text-muted-foreground px-1">
                   {format(new Date(msg.timestamp), 'HH:mm')}
                 </p>
               </div>

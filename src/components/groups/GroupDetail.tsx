@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -37,6 +36,7 @@ import {
 import { getTrustLevel } from '@/lib/trust-levels';
 import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
+import { filterProfanity } from '@/lib/utils';
 
 interface GroupDetailProps {
   groupId: string;
@@ -99,13 +99,15 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
   const handleSendMessage = async () => {
     if (!chatText.trim() || !user || !group) return;
 
+    // Aplicar filtro de profanidade
+    const cleanMsg = filterProfanity(chatText);
+    
     const currentUserProfile = memberProfiles?.find(p => p.id === user.uid);
-    const text = chatText;
     setChatText('');
 
     try {
       await addDoc(collection(db, 'groups', groupId, 'messages'), {
-        text,
+        text: cleanMsg,
         authorId: user.uid,
         authorUsername: currentUserProfile?.username || user.email?.split('@')[0] || 'Vizinho',
         authorAvatarLetter: currentUserProfile?.avatarLetter || user.email?.charAt(0).toUpperCase() || 'V',
@@ -299,12 +301,12 @@ export default function GroupDetail({ groupId, onBack, onProfileClick }: GroupDe
                           <span className="text-[10px] font-bold text-muted-foreground">{msg.authorUsername}</span>
                           {trustLevel && <span className="text-[10px]">{trustLevel.icon}</span>}
                         </div>
-                        <div className={`p-2.5 rounded-2xl text-sm shadow-sm ${
-                          isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none border'
+                        <div className={`p-2 rounded-2xl text-sm shadow-sm border ${
+                          isMe ? 'bg-primary text-white rounded-tr-none' : 'bg-white text-foreground rounded-tl-none'
                         }`}>
                           <p className="whitespace-pre-wrap">{msg.text}</p>
                         </div>
-                        <p className="text-[8px] mt-0.5 text-muted-foreground px-1">
+                        <p className="text-[8px] mt-1 text-muted-foreground px-1">
                           {format(new Date(msg.timestamp), 'HH:mm')}
                         </p>
                       </div>

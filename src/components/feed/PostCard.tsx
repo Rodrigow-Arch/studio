@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -18,6 +17,7 @@ import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import ReportModal from '../security/ReportModal';
 import SOSRequirementModal from '../security/SOSRequirementModal';
+import { filterProfanity } from '@/lib/utils';
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
@@ -69,9 +69,12 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const handleAddComment = async () => {
     if (!commentText || !user || !currentUserProfile) return;
     
+    // Aplicar filtro de profanidade
+    const cleanComment = filterProfanity(commentText);
+
     const newComment = {
       postId: post.id,
-      text: commentText,
+      text: cleanComment,
       authorId: user.uid,
       authorUsername: currentUserProfile.username,
       authorAvatarLetter: currentUserProfile.avatarLetter,

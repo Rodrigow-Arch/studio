@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -16,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { filterProfanity } from '@/lib/utils';
 
 type PostType = 'Ajuda' | 'SOS' | 'Partilha' | 'Evento';
 
@@ -61,9 +61,12 @@ export default function CreatePost({ onClose, groupId }: CreatePostProps) {
     setLoading(true);
 
     try {
+      // Aplicar filtro de profanidade
+      const cleanText = filterProfanity(texto);
+
       const postData = {
         type: tipo,
-        text: texto,
+        text: cleanText,
         authorId: user.uid,
         authorUsername: userProfile.username,
         authorAvatarLetter: userProfile.avatarLetter,
