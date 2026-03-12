@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -193,7 +192,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all"
+                className="bg-white/20 text-white hover:bg-white/40 rounded-full active:scale-90 transition-all text-destructive-foreground hover:bg-primary transition-all"
                 onClick={() => setIsReportOpen(true)}
               >
                 <Flag className="w-5 h-5" />
@@ -281,7 +280,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
         </div>
 
         <div className="pt-4 border-t space-y-4">
-          <BadgeGrid earnedBadgeIds={userProfile.earnedBadges || []} />
+          <BadgeGrid userProfile={userProfile} />
         </div>
 
         {!isOwnProfile && (
