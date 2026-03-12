@@ -239,54 +239,54 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
   return (
     <div className="fixed inset-0 z-[60] bg-background flex flex-col max-w-[480px] mx-auto">
-      <header className="p-3 border-b bg-white flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="w-5 h-5" /></Button>
-          <div className="flex items-center gap-2">
+      <header className="p-2 border-b bg-white flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-1 min-w-0">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 shrink-0"><ArrowLeft className="w-4 h-4" /></Button>
+          <div className="flex items-center gap-1.5 min-w-0">
             <Avatar 
-              className="w-8 h-8 cursor-pointer hover:opacity-80 transition-opacity"
+              className="w-7 h-7 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => otherId && onProfileClick?.(otherId)}
             >
               {otherProfile?.photoUrl && <AvatarImage src={otherProfile.photoUrl} className="object-cover" />}
-              <AvatarFallback className="text-white text-[10px] bg-primary font-bold">
+              <AvatarFallback className="text-white text-[9px] bg-primary font-bold">
                 {otherName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="cursor-pointer" onClick={() => otherId && onProfileClick?.(otherId)}>
-              <div className="flex items-center gap-1">
-                <p className="text-sm font-bold leading-none hover:text-primary transition-colors">{otherName}</p>
-                {trustLevel && <span title={trustLevel.label}>{trustLevel.icon}</span>}
+            <div className="cursor-pointer min-w-0" onClick={() => otherId && onProfileClick?.(otherId)}>
+              <div className="flex items-center gap-0.5 min-w-0">
+                <p className="text-xs font-bold leading-none hover:text-primary transition-colors truncate">{otherName}</p>
+                {trustLevel && <span className="text-xs" title={trustLevel.label}>{trustLevel.icon}</span>}
               </div>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                Post: {post.type} <ExternalLink className="w-2 h-2" />
+              <p className="text-[9px] text-muted-foreground flex items-center gap-0.5 truncate uppercase font-bold tracking-tighter">
+                Post: {post.type}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 shrink-0">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-8 text-[9px] text-destructive hover:bg-destructive/10 font-black border border-destructive/20 rounded-full"
+            className="h-7 px-2 text-[8px] text-destructive hover:bg-destructive/10 font-black border border-destructive/20 rounded-full"
             onClick={() => setIsEmergencyOpen(true)}
           >
-            🆘 Emergência
+            🆘 SOS
           </Button>
           {isAuthor && post.status !== 'resolvido' && (
             <Button 
               size="sm" 
               variant="default" 
-              className="h-8 text-[10px] bg-primary text-white font-bold rounded-full" 
+              className="h-7 px-2 text-[9px] bg-primary text-white font-bold rounded-full shadow-sm" 
               onClick={() => setIsRatingOpen(true)}
             >
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Resolvido
+              <CheckCircle2 className="w-2.5 h-2.5 mr-1" /> Resolvido
             </Button>
           )}
         </div>
       </header>
 
-      <div className="px-4 py-2 bg-secondary/20 border-b flex justify-between items-center">
-        <p className="text-[10px] text-muted-foreground line-clamp-1 italic">"{post.text}"</p>
+      <div className="px-4 py-1.5 bg-secondary/20 border-b flex justify-between items-center shrink-0">
+        <p className="text-[9px] text-muted-foreground line-clamp-1 italic">"{post.text}"</p>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/5">
@@ -327,9 +327,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
             value={text} 
             onChange={e => handleInputChange(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
-            className="rounded-full bg-secondary/50 border-none"
+            className="rounded-full bg-secondary/50 border-none h-10 text-sm"
           />
-          <Button size="icon" className="rounded-full shrink-0" onClick={handleSend} disabled={!text}>
+          <Button size="icon" className="rounded-full shrink-0 h-10 w-10" onClick={handleSend} disabled={!text}>
             <Send className="w-4 h-4" />
           </Button>
         </div>
