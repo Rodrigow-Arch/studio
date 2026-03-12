@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Flag, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, addDoc, updateDoc, doc, increment } from "firebase/firestore";
+import { collection, setDoc, updateDoc, doc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReportModalProps {
@@ -48,7 +48,11 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, postId }:
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'denuncias'), {
+      // Criar uma referência de documento para obter o ID antes de gravar
+      const reportRef = doc(collection(db, 'denuncias'));
+      
+      await setDoc(reportRef, {
+        id: reportRef.id,
         reportedUserId,
         reporterId: user.uid,
         reason: finalReason,
@@ -68,6 +72,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, postId }:
       onClose();
       setCustomReason('');
     } catch (e) {
+      console.error("Erro ao enviar denúncia:", e);
       toast({ variant: "destructive", title: "Erro ao enviar denúncia" });
     } finally {
       setIsSubmitting(false);
