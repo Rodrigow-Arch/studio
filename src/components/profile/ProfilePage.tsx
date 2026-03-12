@@ -13,7 +13,7 @@ import {
   MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, 
   Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
   ShieldCheck, AlertTriangle, Info, CheckCircle2, XCircle, HeartHandshake,
-  Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2
+  Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -26,7 +26,8 @@ import { generateBioDescription } from '@/ai/flows/bio-description-generation-fl
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import ReportModal from '../security/ReportModal';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
+import { pt } from 'date-fns/locale';
 import ImageCropper from '@/components/profile/ImageCropper';
 
 interface SocialLink {
@@ -236,6 +237,10 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   const accountAge = differenceInDays(new Date(), new Date(userProfile.joinedTimestamp));
   const isSOSVerified = accountAge >= 30 && userProfile.points >= 50 && userProfile.helpsGiven >= 2 && (userProfile.reportCount || 0) === 0;
 
+  const joinDateFormatted = userProfile.joinedTimestamp 
+    ? format(new Date(userProfile.joinedTimestamp), "'Membro desde' MMMM 'de' yyyy", { locale: pt })
+    : '';
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
       <div className="bg-primary h-32 relative overflow-hidden">
@@ -312,8 +317,16 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm">
-            <MapPin className="w-3 h-3 text-primary" /> {userProfile.zone}, {userProfile.district}
+          
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-4 py-1.5 rounded-full shadow-sm">
+              <MapPin className="w-3 h-3 text-primary" /> {userProfile.zone}, {userProfile.district}
+            </div>
+            {joinDateFormatted && (
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 uppercase font-black tracking-widest pt-1">
+                <CalendarDays className="w-3 h-3" /> {joinDateFormatted}
+              </div>
+            )}
           </div>
         </div>
 
