@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Send, CheckCircle2, Star } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, doc, updateDoc, where, getDocs, setDoc, serverTimestamp, writeBatch, increment, getDoc, deleteDoc } from "firebase/firestore";
 import { format, isToday, isYesterday, isSameDay, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -138,13 +138,16 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       const batch = writeBatch(db);
       
       const postRef = doc(db, 'posts', post.id);
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
       
-      batch.update(postRef, { 
-        status: 'resolvido',
-        expiresAt: expiresAt.toISOString()
-      });
+      // ELIMINAÇÃO AUTOMÁTICA: Em vez de atualizar o status, deletamos o post
+      batch.delete(postRef);
+
+      // Limpar subcoleções do post (comentários e candidaturas)
+      const commentsSnap = await getDocs(collection(db, 'posts', post.id, 'comments'));
+      commentsSnap.forEach(d => batch.delete(d.ref));
+
+      const applicationsSnap = await getDocs(collection(db, 'posts', post.id, 'applications'));
+      applicationsSnap.forEach(d => batch.delete(d.ref));
 
       // Aplicar filtro no comentário de avaliação também
       const cleanRatingComment = filterProfanity(ratingComment);
@@ -191,6 +194,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         batch.update(helperRef, updateObj);
       }
 
+      // Limpar o chat associado
       const messagesSnap = await getDocs(collection(db, 'chats', chatId, 'messages'));
       messagesSnap.forEach(d => batch.delete(d.ref));
       
@@ -202,7 +206,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
       toast({
         title: "Problema Resolvido!",
-        description: `A ajuda foi concluída. O ajudante recebeu os pontos de mérito.`,
+        description: `A ajuda foi concluída e o post foi arquivado definitivamente.`,
       });
       setIsRatingOpen(false);
       onBack();

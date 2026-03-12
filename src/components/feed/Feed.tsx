@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -37,22 +36,14 @@ export default function Feed({ onProfileClick }: FeedProps) {
   const sortedAndFilteredPosts = React.useMemo(() => {
     if (!allPosts || !currentUserProfile) return [];
     
-    const now = new Date();
-    
-    // 1. Filtragem inicial por tipo e agora por abrangência (Scope)
+    // 1. Filtragem inicial por tipo e abrangência (Scope)
     let filtered = allPosts.filter(p => {
       const isPublic = !p.groupId || p.isPublic;
       const matchesType = filterType === 'Tudo' || p.type === filterType;
-      
-      // Filtrar por distrito se "Perto de si" estiver selecionado
       const matchesScope = scopeFilter === 'all' || p.district === currentUserProfile.district;
       
-      if (p.status === 'resolvido' && p.expiresAt) {
-        const expiresAt = new Date(p.expiresAt);
-        if (now > expiresAt) return false;
-      }
-      
-      return isPublic && matchesType && matchesScope;
+      // Os posts resolvidos agora são deletados, por isso não precisamos de expiresAt aqui
+      return isPublic && matchesType && matchesScope && p.status !== 'resolvido';
     });
 
     // 2. Ordenação Inteligente (70% Proximidade, 30% Pontos)
@@ -105,7 +96,6 @@ export default function Feed({ onProfileClick }: FeedProps) {
         </Button>
       </div>
 
-      {/* Seletor de Abrangência (Scope Filter) */}
       <div className="flex bg-secondary/30 p-1 rounded-2xl">
         <button 
           className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${scopeFilter === 'all' ? 'bg-white shadow-md text-primary' : 'text-muted-foreground'}`}
