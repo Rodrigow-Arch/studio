@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, Shield, BookOpen, ChevronRight, Hash } from "lucide-react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import CreateGroup from './CreateGroup';
 import GroupDetail from './GroupDetail';
 
@@ -16,16 +16,27 @@ export default function GroupsPage() {
   const [showCreate, setShowCreate] = React.useState(false);
   const [selectedGroupId, setSelectedGroupId] = React.useState<string | null>(null);
 
+  // Simplificamos a query para evitar a necessidade de índices compostos manuais.
+  // Filtramos apenas pela participação do utilizador. A ordenação será feita no cliente.
   const groupsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
       collection(db, 'groups'),
-      where('memberIds', 'array-contains', user.uid),
-      orderBy('timestamp', 'desc')
+      where('memberIds', 'array-contains', user.uid)
     );
   }, [db, user]);
 
-  const { data: groups, isLoading } = useCollection(groupsQuery);
+  const { data: rawGroups, isLoading } = useCollection(groupsQuery);
+
+  // Ordenamos os grupos no cliente por timestamp (mais recentes primeiro)
+  const groups = React.useMemo(() => {
+    if (!rawGroups) return [];
+    return [...rawGroups].sort((a, b) => {
+      const dateA = new Date(a.timestamp || 0).getTime();
+      const dateB = new Date(b.timestamp || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [rawGroups]);
 
   if (selectedGroupId) {
     return <GroupDetail groupId={selectedGroupId} onBack={() => setSelectedGroupId(null)} />;
