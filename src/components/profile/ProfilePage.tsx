@@ -11,9 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MapPin, Award, ThumbsUp, LogOut, MessageCircle, X, ArrowLeft, Save, 
   Sparkles, Phone, User as UserIcon, Mail, AtSign, Lock, Camera, Flag, 
-  ShieldCheck, AlertTriangle, Info, CheckCircle2, XCircle, HeartHandshake,
+  ShieldCheck, Info, CheckCircle2, XCircle, HeartHandshake,
   Instagram, Youtube, Globe, Link as LinkIcon, Plus, Trash2, CalendarDays,
-  Send, MessageSquareQuote
+  Send, MessageSquareQuote, ChevronDown, ChevronUp
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
@@ -21,7 +21,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth, useCollection 
 import { doc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, limit } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useToast } from "@/hooks/use-toast";
-import { DISTRITOS_PORTUGAL, calculateDistance } from '@/lib/geo';
+import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
@@ -39,9 +39,10 @@ interface SocialLink {
 interface ProfilePageProps {
   userId?: string;
   onBack?: () => void;
+  onProfileClick?: (uid: string) => void;
 }
 
-export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
+export default function ProfilePage({ userId, onBack, onProfileClick }: ProfilePageProps) {
   const { user: currentUser } = useUser();
   const db = useFirestore();
   const auth = useAuth();
@@ -49,6 +50,7 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
   
   const [showSettings, setShowSettings] = React.useState(false);
   const [showPointsGuide, setShowPointsGuide] = React.useState(false);
+  const [showAllMural, setShowAllMural] = React.useState(false);
   const [postCount, setPostCount] = React.useState(0);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingBio, setIsGeneratingBio] = React.useState(false);
@@ -77,17 +79,21 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     socialLinks: [] as SocialLink[]
   });
 
-  // Buscar comentários do perfil (Mural)
   const profileCommentsQuery = useMemoFirebase(() => {
     if (!targetUid) return null;
     return query(
       collection(db, 'users', targetUid, 'profileComments'),
       orderBy('timestamp', 'desc'),
-      limit(10)
+      limit(20)
     );
   }, [db, targetUid]);
 
-  const { data: profileComments, isLoading: commentsLoading } = useCollection(profileCommentsQuery);
+  const { data: rawProfileComments, isLoading: commentsLoading } = useCollection(profileCommentsQuery);
+
+  const profileComments = React.useMemo(() => {
+    if (!rawProfileComments) return [];
+    return showAllMural ? rawProfileComments : rawProfileComments.slice(0, 3);
+  }, [rawProfileComments, showAllMural]);
 
   React.useEffect(() => {
     if (userProfile) {
@@ -290,6 +296,12 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
     ? format(new Date(userProfile.joinedTimestamp), "'Membro desde' MMMM 'de' yyyy", { locale: pt })
     : '';
 
+  const handleMuralAuthorClick = (uid: string) => {
+    if (onProfileClick) {
+      onProfileClick(uid);
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-full bg-background">
       <div className="bg-primary h-32 relative overflow-hidden">
@@ -418,11 +430,26 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
           <RatingStats profile={userProfile} />
         </div>
 
-        {/* Mural do Perfil (Comentários da Comunidade) */}
         <div className="space-y-4 pt-6 border-t">
-          <h3 className="font-headline text-lg flex items-center gap-2">
-            <MessageSquareQuote className="w-5 h-5 text-primary" /> Mural da Comunidade
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-headline text-lg flex items-center gap-2">
+              <MessageSquareQuote className="w-5 h-5 text-primary" /> Mural da Comunidade
+            </h3>
+            {rawProfileComments && rawProfileComments.length > 3 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-[9px] font-black uppercase text-primary hover:bg-primary/5"
+                onClick={() => setShowAllMural(!showAllMural)}
+              >
+                {showAllMural ? (
+                  <><ChevronUp className="w-3 h-3 mr-1" /> Ver Menos</>
+                ) : (
+                  <><ChevronDown className="w-3 h-3 mr-1" /> Ver Todos ({rawProfileComments.length})</>
+                )}
+              </Button>
+            )}
+          </div>
 
           {!isOwnProfile && (
             <div className="bg-white p-4 rounded-3xl border shadow-sm space-y-3">
@@ -451,24 +478,34 @@ export default function ProfilePage({ userId, onBack }: ProfilePageProps) {
                 {[1, 2].map(i => <div key={i} className="h-20 bg-secondary/20 animate-pulse rounded-2xl" />)}
               </div>
             ) : profileComments && profileComments.length > 0 ? (
-              profileComments.map((pc: any) => (
-                <div key={pc.id} className="flex gap-3 animate-in fade-in slide-in-from-left-2">
-                  <Avatar className="w-8 h-8 shrink-0 border">
-                    <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: pc.authorAvatarColor }}>
-                      {pc.authorAvatarLetter}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-black text-primary">{pc.authorUsername}</span>
-                      <span className="text-[8px] text-muted-foreground uppercase font-medium">
-                        {formatDistanceToNow(new Date(pc.timestamp), { addSuffix: true, locale: pt })}
-                      </span>
+              <div className="space-y-3 animate-in fade-in duration-500">
+                {profileComments.map((pc: any) => (
+                  <div key={pc.id} className="flex gap-3 animate-in fade-in slide-in-from-left-2">
+                    <Avatar 
+                      className="w-8 h-8 shrink-0 border cursor-pointer hover:scale-110 transition-transform"
+                      onClick={() => handleMuralAuthorClick(pc.authorId)}
+                    >
+                      <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: pc.authorAvatarColor }}>
+                        {pc.authorAvatarLetter}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span 
+                          className="text-[10px] font-black text-primary cursor-pointer hover:underline"
+                          onClick={() => handleMuralAuthorClick(pc.authorId)}
+                        >
+                          {pc.authorUsername}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground uppercase font-medium">
+                          {formatDistanceToNow(new Date(pc.timestamp), { addSuffix: true, locale: pt })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{pc.text}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{pc.text}</p>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
               <div className="py-8 text-center bg-secondary/5 rounded-3xl border border-dashed flex flex-col items-center gap-2">
                 <MessageCircle className="w-8 h-8 text-muted-foreground/30" />

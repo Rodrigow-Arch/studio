@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from 'react';
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, ChevronDown, ChevronUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, limit } from "firebase/firestore";
 import { formatDistanceToNow } from "date-fns";
@@ -14,9 +15,8 @@ interface RatingStatsProps {
 
 export default function RatingStats({ profile }: RatingStatsProps) {
   const db = useFirestore();
+  const [showAllTestimonials, setShowAllTestimonials] = React.useState(false);
 
-  // Removido o orderBy do Firestore para evitar a necessidade imediata de um índice composto.
-  // Em vez disso, aumentamos ligeiramente o limite e ordenamos no código (useMemo) abaixo.
   const ratingsQuery = useMemoFirebase(() => {
     if (!profile?.id) return null;
     return query(
@@ -28,17 +28,17 @@ export default function RatingStats({ profile }: RatingStatsProps) {
 
   const { data: rawRatings, isLoading } = useCollection(ratingsQuery);
 
-  // Ordenação manual no cliente para garantir que os mais recentes aparecem primeiro sem erro de índice.
   const ratingComments = React.useMemo(() => {
     if (!rawRatings) return [];
-    return [...rawRatings]
+    const sorted = [...rawRatings]
       .sort((a, b) => {
         const dateA = new Date(a.timestamp).getTime();
         const dateB = new Date(b.timestamp).getTime();
         return dateB - dateA;
-      })
-      .slice(0, 5);
-  }, [rawRatings]);
+      });
+    
+    return showAllTestimonials ? sorted : sorted.slice(0, 3);
+  }, [rawRatings, showAllTestimonials]);
 
   if (!profile) return null;
 
@@ -57,7 +57,7 @@ export default function RatingStats({ profile }: RatingStatsProps) {
   }
 
   const distribution = [
-    { stars: 5, count: profile.totalRatings }, // Por agora simulamos a distribuição baseada no total
+    { stars: 5, count: profile.totalRatings },
     { stars: 4, count: 0 },
     { stars: 3, count: 0 },
     { stars: 2, count: 0 },
@@ -93,11 +93,26 @@ export default function RatingStats({ profile }: RatingStatsProps) {
           </div>
         </div>
 
-        {/* Testemunhos (Comentários das avaliações) */}
         <div className="space-y-4 pt-4 border-t">
-          <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-            <Quote className="w-3 h-3" /> Últimos Testemunhos
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+              <Quote className="w-3 h-3" /> Testemunhos de Ajuda
+            </h4>
+            {rawRatings && rawRatings.length > 3 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/5"
+                onClick={() => setShowAllTestimonials(!showAllTestimonials)}
+              >
+                {showAllTestimonials ? (
+                  <><ChevronUp className="w-3 h-3 mr-1" /> Ver Menos</>
+                ) : (
+                  <><ChevronDown className="w-3 h-3 mr-1" /> Ver Mais ({rawRatings.length})</>
+                )}
+              </Button>
+            )}
+          </div>
           
           {isLoading ? (
             <div className="space-y-2">
@@ -105,7 +120,7 @@ export default function RatingStats({ profile }: RatingStatsProps) {
               <div className="h-12 bg-secondary/20 animate-pulse rounded-xl" />
             </div>
           ) : ratingComments && ratingComments.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-in fade-in duration-500">
               {ratingComments.map((rc: any) => (
                 <div key={rc.id} className="bg-secondary/10 p-3 rounded-2xl border border-transparent hover:border-primary/10 transition-all">
                   <div className="flex items-center justify-between mb-1">

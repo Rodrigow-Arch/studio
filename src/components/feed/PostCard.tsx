@@ -4,9 +4,14 @@ import * as React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, Wallet, Award, Flag, Lock, ShieldCheck, AlertTriangle, Zap, Info } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, 
+  Wallet, Award, Flag, Lock, ShieldCheck, AlertTriangle, Zap, 
+  ChevronDown, ChevronUp 
+} from "lucide-react";
 import { calculateDistance } from "@/lib/geo";
-import { formatDistanceToNow, differenceInDays } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +29,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const db = useFirestore();
   const { toast } = useToast();
   const [showComments, setShowComments] = React.useState(false);
+  const [showAllComments, setShowAllComments] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
   const [isReportOpen, setIsReportOpen] = React.useState(false);
@@ -45,15 +51,11 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     return query(
       collection(db, 'posts', post.id, 'comments'),
       orderBy('timestamp', 'asc'),
-      limit(20)
+      limit(50)
     );
   }, [db, post.id]);
 
   const { data: comments } = useCollection(commentsQuery);
-
-  const distance = (currentUserProfile && post.latitude && post.longitude)
-    ? calculateDistance(currentUserProfile.latitude, currentUserProfile.longitude, post.latitude, post.longitude).toFixed(1)
-    : '??';
 
   const typeColors: Record<string, string> = {
     'Ajuda': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -69,7 +71,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const handleAddComment = async () => {
     if (!commentText || !user || !currentUserProfile) return;
     
-    // Aplicar filtro de profanidade
     const cleanComment = filterProfanity(commentText);
 
     const newComment = {
@@ -78,6 +79,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       authorId: user.uid,
       authorUsername: currentUserProfile.username,
       authorAvatarLetter: currentUserProfile.avatarLetter,
+      authorAvatarColor: currentUserProfile.avatarColor,
       authorPoints: currentUserProfile.points || 0,
       timestamp: new Date().toISOString()
     };
@@ -92,6 +94,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
       });
       await checkAndAwardBadges(db, user.uid);
       setCommentText('');
+      setShowAllComments(true);
     } catch (e) {
       console.error(e);
     }
@@ -156,6 +159,11 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   };
 
   const trustLevel = getTrustLevel(authorProfile?.points || 0);
+
+  const visibleComments = React.useMemo(() => {
+    if (!comments) return [];
+    return showAllComments ? comments : comments.slice(0, 3);
+  }, [comments, showAllComments]);
 
   return (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
@@ -269,21 +277,38 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
 
         {showComments && (
           <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="space-y-3">
-              {comments?.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} onProfileClick={onProfileClick} />
-              ))}
-            </div>
+            <ScrollArea className="max-h-[300px] w-full pr-4">
+              <div className="space-y-3">
+                {visibleComments.map((comment) => (
+                  <CommentItem key={comment.id} comment={comment} onProfileClick={onProfileClick} />
+                ))}
+              </div>
+            </ScrollArea>
+            
+            {comments && comments.length > 3 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full h-8 text-[10px] font-black uppercase text-primary hover:bg-primary/5 rounded-xl mt-1"
+                onClick={() => setShowAllComments(!showAllComments)}
+              >
+                {showAllComments ? (
+                  <><ChevronUp className="w-3.5 h-3.5 mr-1.5" /> Ver Menos</>
+                ) : (
+                  <><ChevronDown className="w-3.5 h-3.5 mr-1.5" /> Ver todos os {comments.length} comentários</>
+                )}
+              </Button>
+            )}
             
             <div className="flex gap-2 items-center pb-2 px-1">
               <Input 
                 placeholder="Escreve um comentário..." 
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className="h-8 text-xs bg-white rounded-full border-none shadow-inner"
+                className="h-9 text-xs bg-white rounded-full border-none shadow-inner"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
               />
-              <Button size="icon" className="h-8 w-8 rounded-full shrink-0 shadow-md" onClick={handleAddComment} disabled={!commentText}>
+              <Button size="icon" className="h-9 w-9 rounded-full shrink-0 shadow-md" onClick={handleAddComment} disabled={!commentText}>
                 <Send className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -316,27 +341,32 @@ function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick
   const trustLevel = getTrustLevel(authorProfile?.points || comment.authorPoints || 0);
 
   return (
-    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300 group">
       <Avatar 
-        className="w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform" 
+        className="w-7 h-7 shrink-0 cursor-pointer hover:scale-110 transition-transform shadow-sm" 
         onClick={() => onProfileClick(comment.authorId)}
       >
         {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
-        <AvatarFallback className="text-[10px] bg-secondary">{comment.authorAvatarLetter}</AvatarFallback>
+        <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: comment.authorAvatarColor || '#e2e8f0' }}>
+          {comment.authorAvatarLetter}
+        </AvatarFallback>
       </Avatar>
-      <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm">
+      <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm border border-secondary/20 hover:border-primary/20 transition-colors">
         <div className="flex items-center gap-1 mb-0.5">
           <span 
-            className="font-bold cursor-pointer hover:underline text-primary"
+            className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
             onClick={() => onProfileClick(comment.authorId)}
           >
             {comment.authorUsername}
           </span>
           {trustLevel && (
-            <span className={`text-[7px] ${trustLevel.color}`}>{trustLevel.icon}</span>
+            <span className="text-[8px]" title={trustLevel.label}>{trustLevel.icon}</span>
           )}
+          <span className="text-[8px] text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
+          </span>
         </div>
-        {comment.text}
+        <p className="text-muted-foreground leading-snug">{comment.text}</p>
       </div>
     </div>
   );
