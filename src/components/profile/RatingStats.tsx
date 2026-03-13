@@ -10,6 +10,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase
 import { collection, query, where, limit, doc } from "firebase/firestore";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
+import { getTrustLevel } from '@/lib/trust-levels';
 
 interface RatingStatsProps {
   profile: any;
@@ -141,6 +142,7 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
   const db = useFirestore();
   const raterProfileRef = useMemoFirebase(() => rc.raterId ? doc(db, 'users', rc.raterId) : null, [db, rc.raterId]);
   const { data: raterProfile } = useDoc(raterProfileRef);
+  const trustLevel = raterProfile ? getTrustLevel(raterProfile.points || 0) : null;
 
   // Garantir que o username tem o formato correto (evitar @ duplicado)
   const displayUsername = rc.raterUsername?.startsWith('@') ? rc.raterUsername : `@${rc.raterUsername}`;
@@ -158,15 +160,22 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
       </Avatar>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-1">
-            <span 
-              className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
-              onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
-            >
-              {displayUsername}
-            </span>
-            {rc.raterUsername === '@faroltech' && (
-              <BadgeCheck className="w-3 h-3 text-[#0095f6]" />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <span 
+                className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
+                onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
+              >
+                {displayUsername}
+              </span>
+              {rc.raterUsername === '@faroltech' && (
+                <BadgeCheck className="w-3 h-3 text-[#0095f6]" />
+              )}
+            </div>
+            {trustLevel && (
+              <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase`}>
+                {trustLevel.icon} {trustLevel.label}
+              </div>
             )}
           </div>
           <div className="flex text-yellow-400">

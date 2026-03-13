@@ -335,20 +335,24 @@ function CommentItem({ comment, onProfileClick }: { comment: any, onProfileClick
         </AvatarFallback>
       </Avatar>
       <div className="bg-white/80 p-2.5 rounded-2xl flex-1 text-xs shadow-sm border border-secondary/20 hover:border-primary/20 transition-colors">
-        <div className="flex items-center gap-1 mb-0.5">
-          <div className="flex items-center gap-1">
-            <span 
-              className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
-              onClick={() => onProfileClick(comment.authorId)}
-            >
-              {comment.authorUsername}
-            </span>
-            {comment.authorUsername === '@faroltech' && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <span 
+                className="font-black cursor-pointer hover:text-primary transition-colors text-[10px]"
+                onClick={() => onProfileClick(comment.authorId)}
+              >
+                {comment.authorUsername}
+              </span>
+              {comment.authorUsername === '@faroltech' && <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6]" />}
+            </div>
+            {trustLevel && (
+              <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[6px] font-black uppercase`}>
+                {trustLevel.icon} {trustLevel.label}
+              </div>
+            )}
           </div>
-          {trustLevel && (
-            <span className="text-[8px]" title={trustLevel.label}>{trustLevel.icon}</span>
-          )}
-          <span className="text-[8px] text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-[8px] text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
           </span>
         </div>
