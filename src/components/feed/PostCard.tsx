@@ -285,13 +285,19 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-2xl min-w-[140px]">
                 <DropdownMenuItem 
-                  onClick={() => setIsEditing(true)}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setTimeout(() => setIsEditing(true), 100);
+                  }}
                   className="gap-2 text-xs font-bold py-2.5 cursor-pointer"
                 >
                   <Pencil className="w-3.5 h-3.5" /> Editar Texto
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => setIsDeleting(true)}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setTimeout(() => setIsDeleting(true), 100);
+                  }}
                   className="gap-2 text-xs font-bold py-2.5 text-destructive cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Eliminar Post
