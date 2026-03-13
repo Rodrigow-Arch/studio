@@ -22,12 +22,6 @@ import { getTrustLevel } from '@/lib/trust-levels';
 import SOSRequirementModal from '../security/SOSRequirementModal';
 import { filterProfanity } from '@/lib/utils';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -245,24 +239,14 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
           </div>
 
           {isAuthor && post.status === 'aberto' && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-2xl min-w-[140px]">
-                <DropdownMenuItem 
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setIsDeleting(true);
-                  }}
-                  className="gap-2 text-xs font-bold py-2.5 text-destructive cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Eliminar Post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all active:scale-90"
+              onClick={() => setIsDeleting(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           )}
         </CardHeader>
         
