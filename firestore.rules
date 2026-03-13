@@ -19,7 +19,7 @@ service cloud.firestore {
       return isSignedIn() && resource != null && resource.data[ownerIdField] == request.auth.uid;
     }
 
-    // Regras para Utilizadores: Permitir leitura total para garantir o arranque e verificação de perfis
+    // Regras para Utilizadores
     match /users/{userId} {
       allow read: if true; 
       allow create: if isOwner(userId);
@@ -49,7 +49,9 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if true;
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if isExistingOwner('authorId');
+        // Permitir que o autor do POST apague comentários no seu post ao arquivar
+        allow delete: if isExistingOwner('authorId') || get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid;
+        allow update: if isExistingOwner('authorId');
       }
 
       match /applications/{applicationId} {

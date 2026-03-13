@@ -194,10 +194,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
     
     try {
       const batch = writeBatch(db);
-      
       const postRef = doc(db, 'posts', post.id);
       
-      // ELIMINAÇÃO AUTOMÁTICA: Em vez de atualizar o status, deletamos o post
+      // ELIMINAÇÃO AUTOMÁTICA
       batch.delete(postRef);
 
       // Limpar subcoleções do post (comentários e candidaturas)
@@ -207,7 +206,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       const applicationsSnap = await getDocs(collection(db, 'posts', post.id, 'applications'));
       applicationsSnap.forEach(d => batch.delete(d.ref));
 
-      // Aplicar filtro no comentário de avaliação também
+      // Aplicar filtro no comentário de avaliação
       const cleanRatingComment = filterProfanity(ratingComment);
 
       const ratingRef = doc(collection(db, 'ratings'));
@@ -216,7 +215,7 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
         stars: rating,
         comment: cleanRatingComment,
         raterId: user.uid,
-        raterUsername: post.authorUsername,
+        raterUsername: post.authorUsername || 'Autor',
         ratedUserId: post.helperId,
         postId: post.id,
         timestamp: new Date().toISOString()
@@ -224,9 +223,9 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
 
       const helperRef = doc(db, 'users', post.helperId);
       const helperSnap = await getDoc(helperRef);
-      const helperData = helperSnap.data();
       
-      if (helperData) {
+      if (helperSnap.exists()) {
+        const helperData = helperSnap.data();
         const totalRatings = (helperData.totalRatings || 0) + 1;
         const oldAverage = helperData.averageRating || 0;
         const newAverage = ((oldAverage * (totalRatings - 1)) + rating) / totalRatings;
@@ -260,7 +259,13 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       typingSnap.forEach(d => batch.delete(d.ref));
 
       await batch.commit();
-      await checkAndAwardBadges(db, post.helperId);
+      
+      // Atribuir insígnias após o commit com os novos dados
+      try {
+        await checkAndAwardBadges(db, post.helperId);
+      } catch (badgeErr) {
+        console.warn("Erro ao atribuir insígnias:", badgeErr);
+      }
 
       toast({
         title: "Problema Resolvido!",
@@ -268,9 +273,13 @@ export default function ChatRoom({ post, onBack, onProfileClick }: { post: any, 
       });
       setIsRatingOpen(false);
       onBack();
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Erro ao finalizar ajuda" });
+    } catch (e: any) {
+      console.error("Erro fatal ao finalizar ajuda:", e);
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao finalizar ajuda",
+        description: "Verifica a tua ligação ou se tens permissões." 
+      });
     } finally {
       setIsResolving(false);
     }

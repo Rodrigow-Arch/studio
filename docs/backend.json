@@ -61,6 +61,14 @@
           "type": "number",
           "description": "Count of times the user has successfully helped others (posts marked 'Resolvido')."
         },
+        "sosResolved": {
+          "type": "number",
+          "description": "Count of SOS posts successfully resolved by the user."
+        },
+        "paidTasksCompleted": {
+          "type": "number",
+          "description": "Count of paid tasks successfully completed by the user."
+        },
         "sharesMade": {
           "type": "number",
           "description": "Count of times the user has shared resources or events."
