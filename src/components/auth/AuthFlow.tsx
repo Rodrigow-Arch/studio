@@ -62,49 +62,71 @@ export default function AuthFlow() {
 
   const handleNext = async () => {
     setError('');
-    setLoading(true);
-
-    try {
-      if (step === 1) {
-        if (!formData.email.includes('@')) throw new Error('Email inválido');
-        if (formData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
-        if (!formData.acceptTerms) throw new Error('Tens de aceitar os Termos e Condições para continuar.');
+    
+    if (step === 1) {
+      if (!formData.email.includes('@')) {
+        setError('Email inválido');
+        return;
       }
-      
-      if (step === 2) {
-        if (!formData.name) throw new Error('Nome é obrigatório');
-        if (!formData.username) throw new Error('Username é obrigatório');
+      if (formData.password.length < 6) {
+        setError('Senha deve ter pelo menos 6 caracteres');
+        return;
       }
-
-      if (step === 3) {
-        const parts = formData.dataNasc.split('/');
-        if (parts.length === 3) {
-          const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-          if (isNaN(d.getTime())) throw new Error('Data inválida');
-          const age = (new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-          if (age < 18) throw new Error('Deves ter 18+ anos para te registares.');
-        } else {
-          throw new Error('Formato de data inválido (DD/MM/AAAA)');
-        }
+      if (!formData.acceptTerms) {
+        setError('Tens de aceitar os Termos e Condições para continuar.');
+        return;
       }
-
-      if (step === 4) {
-        if (!formData.distrito) throw new Error('Distrito é obrigatório');
-        if (!formData.zona) throw new Error('Zona/Bairro é obrigatório');
-      }
-
-      if (step === 5) {
-        if (!formData.telefone || formData.telefone.replace(/\s/g, '').length < 9) {
-          throw new Error('Número de telemóvel inválido');
-        }
-      }
-
-      setStep(s => s + 1);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
+    
+    if (step === 2) {
+      if (!formData.name) {
+        setError('Nome é obrigatório');
+        return;
+      }
+      if (!formData.username) {
+        setError('Username é obrigatório');
+        return;
+      }
+    }
+
+    if (step === 3) {
+      const parts = formData.dataNasc.split('/');
+      if (parts.length === 3) {
+        const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        if (isNaN(d.getTime())) {
+          setError('Data inválida');
+          return;
+        }
+        const age = (new Date().getTime() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        if (age < 18) {
+          setError('Deves ter 18+ anos para te registares.');
+          return;
+        }
+      } else {
+        setError('Formato de data inválido (DD/MM/AAAA)');
+        return;
+      }
+    }
+
+    if (step === 4) {
+      if (!formData.distrito) {
+        setError('Distrito é obrigatório');
+        return;
+      }
+      if (!formData.zona) {
+        setError('Zona/Bairro é obrigatório');
+        return;
+      }
+    }
+
+    if (step === 5) {
+      if (!formData.telefone || formData.telefone.replace(/\s/g, '').length < 9) {
+        setError('Número de telemóvel inválido');
+        return;
+      }
+    }
+
+    setStep(s => s + 1);
   };
 
   const handleLogin = async () => {
@@ -268,7 +290,7 @@ export default function AuthFlow() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background relative overflow-hidden">
-      <div className="w-full max-sm space-y-8 z-10">
+      <div className="w-full max-w-sm space-y-8 z-10">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-24 h-24 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border border-black/5 animate-in zoom-in duration-500">
             <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
@@ -289,7 +311,7 @@ export default function AuthFlow() {
           <Card className="animate-in fade-in slide-in-from-bottom-4 shadow-xl rounded-3xl">
             <CardHeader>
               <CardTitle>Entrar</CardTitle>
-              <CardTitle className="text-sm font-normal text-muted-foreground mt-1">Bem-vindo de volta à tua comunidade.</CardTitle>
+              <CardDescription className="text-sm font-normal text-muted-foreground mt-1">Bem-vindo de volta à tua comunidade.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -310,11 +332,7 @@ export default function AuthFlow() {
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-all active:scale-90"
                   >
-                    {showLoginPassword ? (
-                      <EyeOff key="eye-off" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
-                    ) : (
-                      <Eye key="eye-on" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
-                    )}
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -326,7 +344,7 @@ export default function AuthFlow() {
               <div className="pt-2">
                 <Button 
                   variant="outline" 
-                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary transition-all shadow-sm" 
+                  className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm" 
                   onClick={() => setMode('register')}
                 >
                   <UserPlus className="w-4 h-4 mr-2" /> Não tens conta? Cria uma agora
@@ -366,11 +384,7 @@ export default function AuthFlow() {
                         onClick={() => setShowRegisterPassword(!showRegisterPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-all active:scale-90"
                       >
-                        {showRegisterPassword ? (
-                          <EyeOff key="reg-eye-off" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
-                        ) : (
-                          <Eye key="reg-eye-on" className="w-4 h-4 animate-in fade-in zoom-in-75 duration-300" />
-                        )}
+                        {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -546,7 +560,7 @@ export default function AuthFlow() {
             <div className="pt-4 text-center">
               <Button 
                 variant="outline" 
-                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white active:bg-primary transition-all shadow-sm" 
+                className="w-full h-11 rounded-2xl text-xs font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm" 
                 onClick={() => setMode('login')}
               >
                 <LogIn className="w-4 h-4 mr-2" /> Já tens uma conta? Faz login

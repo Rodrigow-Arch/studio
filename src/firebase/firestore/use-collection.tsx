@@ -75,22 +75,13 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
-
-        let finalError: Error = err;
-        
+        // Silent error for better UX during transition
         if (err.code === 'permission-denied') {
-          finalError = new FirestorePermissionError({
-            operation: 'list',
-            path,
-          });
-          errorEmitter.emit('permission-error', finalError as FirestorePermissionError);
+          console.warn("Firestore Collection Permission Denied:", memoizedTargetRefOrQuery.type === 'collection' ? (memoizedTargetRefOrQuery as CollectionReference).path : "Query");
+        } else {
+          console.error("Firestore useCollection Error:", err);
         }
-
-        setError(finalError);
+        setError(err);
         setData(null);
         setIsLoading(false);
       }
@@ -99,8 +90,5 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
   
-  if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
-  }
   return { data, isLoading, error };
 }

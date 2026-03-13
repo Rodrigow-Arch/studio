@@ -19,13 +19,10 @@ service cloud.firestore {
       return isSignedIn() && resource != null && resource.data[ownerIdField] == request.auth.uid;
     }
 
-    // Regras para Utilizadores
+    // Regras para Utilizadores: Permitir leitura total para garantir o arranque e verificação de perfis
     match /users/{userId} {
-      // Permite leitura pública total para perfis
       allow read: if true; 
-      // Apenas o próprio pode criar o seu perfil inicial
       allow create: if isOwner(userId);
-      // Qualquer pessoa logada pode atualizar (necessário para dar pontos/ratings)
       allow update: if isSignedIn(); 
       allow delete: if isOwner(userId);
 

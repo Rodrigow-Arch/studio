@@ -61,18 +61,13 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Apenas emite erro de permissão se for realmente um erro de segurança
+        // Silent error for better UX during transition
         if (err.code === 'permission-denied') {
-          const contextualError = new FirestorePermissionError({
-            operation: 'get',
-            path: memoizedDocRef.path,
-          });
-          setError(contextualError);
-          console.warn("Firestore Doc Permission Denied (Handled):", memoizedDocRef.path);
+          console.warn("Firestore Doc Permission Denied:", memoizedDocRef.path);
         } else {
           console.error("Firestore useDoc Error:", err);
-          setError(err);
         }
+        setError(err);
         setData(null);
         setIsLoading(false);
       }
