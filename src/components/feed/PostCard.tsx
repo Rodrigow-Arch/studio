@@ -9,19 +9,44 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, 
   Wallet, ShieldCheck, Lock, Zap, 
-  ChevronDown, ChevronUp, BadgeCheck
+  ChevronDown, ChevronUp, BadgeCheck, MoreVertical, Pencil, Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
-import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment } from "firebase/firestore";
+import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment, writeBatch, getDocs, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
 import SOSRequirementModal from '../security/SOSRequirementModal';
 import { filterProfanity } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PostCard({ post, onProfileClick }: { post: any, onProfileClick: (uid: string) => void }) {
   const { user } = useUser();
@@ -32,6 +57,12 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [commentText, setCommentText] = React.useState('');
   const [isApplying, setIsApplying] = React.useState(false);
   const [isSOSModalOpen, setIsSOSModalOpen] = React.useState(false);
+  
+  // Estados para Edição e Eliminação
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [editText, setEditText] = React.useState(post.text);
+  const [isUpdating, setIsUpdating] = React.useState(false);
 
   const currentUserDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -61,6 +92,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     'Partilha': 'bg-green-100 text-green-700 border-green-200',
     'Evento': 'bg-purple-100 text-purple-700 border-purple-200'
   };
+
+  const isAuthor = post.authorId === user?.uid;
 
   const hasAccess = post.type === 'SOS' && currentUserProfile 
     ? (currentUserProfile.points || 0) >= 500 
@@ -156,6 +189,50 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     }
   };
 
+  const handleUpdate = async () => {
+    if (!editText.trim() || !user || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const cleanText = filterProfanity(editText);
+      await updateDoc(doc(db, 'posts', post.id), {
+        text: cleanText
+      });
+      toast({ title: "Publicação atualizada!" });
+      setIsEditing(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao atualizar" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Apagar post
+      batch.delete(doc(db, 'posts', post.id));
+
+      // 2. Apagar comentários
+      const commentsSnap = await getDocs(collection(db, 'posts', post.id, 'comments'));
+      commentsSnap.forEach(d => batch.delete(d.ref));
+
+      // 3. Apagar candidaturas
+      const applicationsSnap = await getDocs(collection(db, 'posts', post.id, 'applications'));
+      applicationsSnap.forEach(d => batch.delete(d.ref));
+
+      await batch.commit();
+      toast({ title: "Publicação eliminada com sucesso." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao eliminar publicação" });
+    } finally {
+      setIsUpdating(false);
+      setIsDeleting(false);
+    }
+  };
+
   const trustLevel = getTrustLevel(authorProfile?.points || 0);
 
   const visibleComments = React.useMemo(() => {
@@ -164,156 +241,232 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   }, [comments, showAllComments]);
 
   return (
-    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
-      <CardHeader className="p-4 flex flex-row items-center justify-between gap-2">
-        <div 
-          className="flex flex-row items-center gap-2 min-w-0 flex-1 cursor-pointer group"
-          onClick={() => onProfileClick(post.authorId)}
-        >
-          <Avatar className="w-9 h-9 shrink-0 transition-transform group-hover:scale-110 duration-300 shadow-sm">
-            {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
-            <AvatarFallback className="text-white font-bold" style={{ backgroundColor: post.authorAvatarColor }}>
-              {post.authorAvatarLetter}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="font-bold text-xs truncate max-w-[120px] group-hover:text-primary transition-colors">{post.authorUsername}</span>
-              {post.authorUsername === '@faroltech' && (
-                <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6] shrink-0" />
-              )}
-              {trustLevel && (
-                <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase shrink-0`}>
-                  {trustLevel.icon} {trustLevel.label}
-                </div>
-              )}
-              <Badge variant="outline" className={`text-[9px] py-0 px-1 h-3.5 font-normal shrink-0 ${typeColors[post.type] || ''}`}>
-                {post.type}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 text-[9px] text-muted-foreground mt-0.5">
-              <span className="flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5" /> {post.zone}</span>
-              <span className="flex items-center gap-0.5 shrink-0"><Clock className="w-2.5 h-2.5" /> {post.timestamp ? formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: pt }) : ''}</span>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="px-4 py-2 space-y-3">
-        {post.type === 'SOS' && (
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <Badge className={`text-[9px] font-black h-5 uppercase tracking-wider gap-1 ${hasAccess ? 'bg-primary text-white' : 'bg-destructive text-white animate-pulse'}`}>
-              <Zap className="w-3 h-3" /> SOS URGENTE
-            </Badge>
-            <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-              {hasAccess ? <ShieldCheck className="w-3 h-3 text-primary" /> : <Lock className="w-3 h-3" />}
-              🛡️ Requer selo Prata ou superior para ajudar
-            </span>
-          </div>
-        )}
-
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.text}</p>
-        
-        {post.paymentAmount > 0 && (
-          <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 p-2.5 rounded-2xl w-fit animate-in zoom-in-95 duration-500">
-            <Wallet className="w-4 h-4 text-primary" />
-            <div className="flex flex-col">
-              <span className="text-[11px] font-black text-primary uppercase leading-tight">Recompensa: {post.paymentAmount}€</span>
-              <span className="text-[9px] text-muted-foreground font-medium uppercase">{post.paymentMethod}</span>
-            </div>
-          </div>
-        )}
-
-        {post.status !== 'aberto' && (
-           <div className="mt-1 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit animate-pulse">
-              {post.status === 'em curso' ? '🟡 Em curso' : '✅ Resolvido'}
-           </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="p-2 bg-muted/30 flex flex-col border-t border-muted/50">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 text-[11px] gap-1.5 px-2 hover:bg-white/50 rounded-full"
-              onClick={() => setShowComments(!showComments)}
-            >
-              <MessageSquare className="w-4 h-4" /> {post.commentCount || 0}
-            </Button>
-            <div className="flex items-center gap-1.5 px-2 text-[11px] text-muted-foreground">
-              <CheckCircle2 className="w-4 h-4" /> {post.candidateCount || 0} candidatos
-            </div>
-          </div>
-
-          {post.authorId !== user?.uid && post.status === 'aberto' && (
-            <Button 
-              size="sm" 
-              variant="default" 
-              className={`h-8 px-4 text-[11px] font-bold rounded-full shadow-sm active:scale-90 transition-transform ${
-                !hasAccess ? 'bg-secondary text-muted-foreground cursor-not-allowed border' :
-                post.type === 'SOS' ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-accent hover:bg-accent/90 text-white'
-              }`}
-              onClick={handleApplyToHelp}
-              disabled={isApplying}
-            >
-              {!hasAccess ? <Lock className="w-4 h-4 mr-1.5" /> : 
-               post.type === 'SOS' ? <Zap className="w-4 h-4 mr-1.5" /> : <HandHeart className="w-4 h-4 mr-1.5" />}
-              {isApplying ? "A enviar..." : (!hasAccess ? "Bloqueado" : (post.type === 'SOS' ? "Responder SOS" : "Quero Ajudar"))}
-            </Button>
-          )}
-        </div>
-
-        {showComments && (
-          <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <ScrollArea className="max-h-[300px] w-full pr-4">
-              <div className="space-y-3">
-                {visibleComments.map((comment) => (
-                  <CommentItem key={comment.id} comment={comment} onProfileClick={onProfileClick} />
-                ))}
+    <>
+      <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.01] bg-white rounded-3xl animate-in fade-in zoom-in-95">
+        <CardHeader className="p-4 flex flex-row items-center justify-between gap-2">
+          <div 
+            className="flex flex-row items-center gap-2 min-w-0 flex-1 cursor-pointer group"
+            onClick={() => onProfileClick(post.authorId)}
+          >
+            <Avatar className="w-9 h-9 shrink-0 transition-transform group-hover:scale-110 duration-300 shadow-sm">
+              {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
+              <AvatarFallback className="text-white font-bold" style={{ backgroundColor: post.authorAvatarColor }}>
+                {post.authorAvatarLetter}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-bold text-xs truncate max-w-[120px] group-hover:text-primary transition-colors">{post.authorUsername}</span>
+                {post.authorUsername === '@faroltech' && (
+                  <BadgeCheck className="w-3.5 h-3.5 text-[#0095f6] shrink-0" />
+                )}
+                {trustLevel && (
+                  <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase shrink-0`}>
+                    {trustLevel.icon} {trustLevel.label}
+                  </div>
+                )}
+                <Badge variant="outline" className={`text-[9px] py-0 px-1 h-3.5 font-normal shrink-0 ${typeColors[post.type] || ''}`}>
+                  {post.type}
+                </Badge>
               </div>
-            </ScrollArea>
-            
-            {comments && comments.length > 3 && (
+              <div className="flex items-center gap-2 text-[9px] text-muted-foreground mt-0.5">
+                <span className="flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5" /> {post.zone}</span>
+                <span className="flex items-center gap-0.5 shrink-0"><Clock className="w-2.5 h-2.5" /> {post.timestamp ? formatDistanceToNow(new Date(post.timestamp), { addSuffix: true, locale: pt }) : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          {isAuthor && post.status === 'aberto' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-2xl min-w-[140px]">
+                <DropdownMenuItem 
+                  onClick={() => setIsEditing(true)}
+                  className="gap-2 text-xs font-bold py-2.5 cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar Texto
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setIsDeleting(true)}
+                  className="gap-2 text-xs font-bold py-2.5 text-destructive cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Eliminar Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </CardHeader>
+        
+        <CardContent className="px-4 py-2 space-y-3">
+          {post.type === 'SOS' && (
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <Badge className={`text-[9px] font-black h-5 uppercase tracking-wider gap-1 ${hasAccess ? 'bg-primary text-white' : 'bg-destructive text-white animate-pulse'}`}>
+                <Zap className="w-3 h-3" /> SOS URGENTE
+              </Badge>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                {hasAccess ? <ShieldCheck className="w-3 h-3 text-primary" /> : <Lock className="w-3 h-3" />}
+                🛡️ Requer selo Prata ou superior para ajudar
+              </span>
+            </div>
+          )}
+
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.text}</p>
+          
+          {post.paymentAmount > 0 && (
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 p-2.5 rounded-2xl w-fit animate-in zoom-in-95 duration-500">
+              <Wallet className="w-4 h-4 text-primary" />
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black text-primary uppercase leading-tight">Recompensa: {post.paymentAmount}€</span>
+                <span className="text-[9px] text-muted-foreground font-medium uppercase">{post.paymentMethod}</span>
+              </div>
+            </div>
+          )}
+
+          {post.status !== 'aberto' && (
+             <div className="mt-1 flex items-center gap-2 text-xs font-medium px-2 py-1 bg-secondary rounded-lg w-fit animate-pulse">
+                {post.status === 'em curso' ? '🟡 Em curso' : '✅ Resolvido'}
+             </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="p-2 bg-muted/30 flex flex-col border-t border-muted/50">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-1">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="w-full h-8 text-[10px] font-black uppercase text-primary hover:bg-primary/5 rounded-xl mt-1"
-                onClick={() => setShowAllComments(!showAllComments)}
+                className="h-8 text-[11px] gap-1.5 px-2 hover:bg-white/50 rounded-full"
+                onClick={() => setShowComments(!showComments)}
               >
-                {showAllComments ? (
-                  <><ChevronUp className="w-3.5 h-3.5 mr-1.5" /> Ver Menos</>
-                ) : (
-                  <><ChevronDown className="w-3.5 h-3.5 mr-1.5" /> Ver todos os {comments.length} comentários</>
-                )}
+                <MessageSquare className="w-4 h-4" /> {post.commentCount || 0}
+              </Button>
+              <div className="flex items-center gap-1.5 px-2 text-[11px] text-muted-foreground">
+                <CheckCircle2 className="w-4 h-4" /> {post.candidateCount || 0} candidatos
+              </div>
+            </div>
+
+            {post.authorId !== user?.uid && post.status === 'aberto' && (
+              <Button 
+                size="sm" 
+                variant="default" 
+                className={`h-8 px-4 text-[11px] font-bold rounded-full shadow-sm active:scale-90 transition-transform ${
+                  !hasAccess ? 'bg-secondary text-muted-foreground cursor-not-allowed border' :
+                  post.type === 'SOS' ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-accent hover:bg-accent/90 text-white'
+                }`}
+                onClick={handleApplyToHelp}
+                disabled={isApplying}
+              >
+                {!hasAccess ? <Lock className="w-4 h-4 mr-1.5" /> : 
+                 post.type === 'SOS' ? <Zap className="w-4 h-4 mr-1.5" /> : <HandHeart className="w-4 h-4 mr-1.5" />}
+                {isApplying ? "A enviar..." : (!hasAccess ? "Bloqueado" : (post.type === 'SOS' ? "Responder SOS" : "Quero Ajudar"))}
               </Button>
             )}
-            
-            <div className="flex gap-2 items-center pb-2 px-1">
-              <Input 
-                placeholder="Escreve um comentário..." 
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                className="h-9 text-xs bg-white rounded-full border-none shadow-inner"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-              />
-              <Button size="icon" className="h-9 w-9 rounded-full shrink-0 shadow-md" onClick={handleAddComment} disabled={!commentText}>
-                <Send className="w-3.5 h-3.5" />
-              </Button>
-            </div>
           </div>
-        )}
-      </CardFooter>
 
-      {currentUserProfile && (
-        <SOSRequirementModal 
-          isOpen={isSOSModalOpen}
-          onClose={() => setIsSOSModalOpen(false)}
-          userProfile={currentUserProfile}
-        />
-      )}
-    </Card>
+          {showComments && (
+            <div className="w-full pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <ScrollArea className="max-h-[300px] w-full pr-4">
+                <div className="space-y-3">
+                  {visibleComments.map((comment) => (
+                    <CommentItem key={comment.id} comment={comment} onProfileClick={onProfileClick} />
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              {comments && comments.length > 3 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full h-8 text-[10px] font-black uppercase text-primary hover:bg-primary/5 rounded-xl mt-1"
+                  onClick={() => setShowAllComments(!showAllComments)}
+                >
+                  {showAllComments ? (
+                    <><ChevronUp className="w-3.5 h-3.5 mr-1.5" /> Ver Menos</>
+                  ) : (
+                    <><ChevronDown className="w-3.5 h-3.5 mr-1.5" /> Ver todos os {comments.length} comentários</>
+                  )}
+                </Button>
+              )}
+              
+              <div className="flex gap-2 items-center pb-2 px-1">
+                <Input 
+                  placeholder="Escreve um comentário..." 
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="h-9 text-xs bg-white rounded-full border-none shadow-inner"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                />
+                <Button size="icon" className="h-9 w-9 rounded-full shrink-0 shadow-md" onClick={handleAddComment} disabled={!commentText}>
+                  <Send className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardFooter>
+
+        {currentUserProfile && (
+          <SOSRequirementModal 
+            isOpen={isSOSModalOpen}
+            onClose={() => setIsSOSModalOpen(false)}
+            userProfile={currentUserProfile}
+          />
+        )}
+      </Card>
+
+      {/* Modal de Edição */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-[400px] rounded-3xl z-[200]">
+          <DialogHeader>
+            <DialogTitle>Editar Publicação</DialogTitle>
+            <DialogDescription className="text-xs">Altera o texto da tua publicação.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea 
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="min-h-[120px] rounded-2xl text-sm"
+              placeholder="O que queres alterar?"
+            />
+          </div>
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="ghost" className="flex-1 rounded-xl" onClick={() => setIsEditing(false)}>Cancelar</Button>
+            <Button 
+              className="flex-1 rounded-xl bg-primary font-bold" 
+              onClick={handleUpdate}
+              disabled={isUpdating || !editText.trim() || editText === post.text}
+            >
+              {isUpdating ? "A guardar..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alerta de Eliminação */}
+      <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
+        <AlertDialogContent className="max-w-[340px] rounded-3xl z-[200]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Publicação?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              Esta ação é irreversível. Todas as candidaturas e comentários associados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 mt-2">
+            <AlertDialogCancel className="flex-1 rounded-xl mt-0">Não</AlertDialogCancel>
+            <AlertDialogAction 
+              className="flex-1 bg-destructive hover:bg-destructive/90 text-white rounded-xl mt-0"
+              onClick={handleDelete}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "A eliminar..." : "Sim, Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
