@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -9,15 +8,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageSquare, HandHeart, CheckCircle2, Clock, MapPin, Send, 
   Wallet, ShieldCheck, Lock, Zap, 
-  ChevronDown, ChevronUp, BadgeCheck, MoreVertical, Pencil, Trash2
+  ChevronDown, ChevronUp, BadgeCheck, MoreVertical, Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from "@/firebase";
-import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment, writeBatch, getDocs, deleteDoc } from "firebase/firestore";
+import { doc, collection, addDoc, query, orderBy, limit, updateDoc, increment, writeBatch, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
@@ -29,14 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,10 +48,8 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
   const [isApplying, setIsApplying] = React.useState(false);
   const [isSOSModalOpen, setIsSOSModalOpen] = React.useState(false);
   
-  // Estados para Edição e Eliminação
-  const [isEditing, setIsEditing] = React.useState(false);
+  // Estados para Eliminação
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const [editText, setEditText] = React.useState(post.text);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   const currentUserDocRef = useMemoFirebase(() => {
@@ -189,42 +177,22 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
     }
   };
 
-  const handleUpdate = async () => {
-    if (!editText.trim() || !user || isUpdating) return;
-    setIsUpdating(true);
-    try {
-      const cleanText = filterProfanity(editText);
-      await updateDoc(doc(db, 'posts', post.id), {
-        text: cleanText
-      });
-      toast({ title: "Publicação atualizada!" });
-      setIsEditing(false);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao atualizar" });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!user || isUpdating) return;
     setIsUpdating(true);
     try {
       const batch = writeBatch(db);
       
-      // 1. Apagar post
       batch.delete(doc(db, 'posts', post.id));
 
-      // 2. Apagar comentários
       const commentsSnap = await getDocs(collection(db, 'posts', post.id, 'comments'));
       commentsSnap.forEach(d => batch.delete(d.ref));
 
-      // 3. Apagar candidaturas
       const applicationsSnap = await getDocs(collection(db, 'posts', post.id, 'applications'));
       applicationsSnap.forEach(d => batch.delete(d.ref));
 
       await batch.commit();
-      toast({ title: "Publicação eliminada com sucesso." });
+      toast({ title: "Publicação eliminada." });
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao eliminar publicação" });
     } finally {
@@ -287,16 +255,7 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
                 <DropdownMenuItem 
                   onSelect={(e) => {
                     e.preventDefault();
-                    setTimeout(() => setIsEditing(true), 100);
-                  }}
-                  className="gap-2 text-xs font-bold py-2.5 cursor-pointer"
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Editar Texto
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setTimeout(() => setIsDeleting(true), 100);
+                    setIsDeleting(true);
                   }}
                   className="gap-2 text-xs font-bold py-2.5 text-destructive cursor-pointer"
                 >
@@ -423,35 +382,6 @@ export default function PostCard({ post, onProfileClick }: { post: any, onProfil
         )}
       </Card>
 
-      {/* Modal de Edição */}
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="max-w-[400px] rounded-3xl z-[200]">
-          <DialogHeader>
-            <DialogTitle>Editar Publicação</DialogTitle>
-            <DialogDescription className="text-xs">Altera o texto da tua publicação.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea 
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="min-h-[120px] rounded-2xl text-sm"
-              placeholder="O que queres alterar?"
-            />
-          </div>
-          <DialogFooter className="flex-row gap-2">
-            <Button variant="ghost" className="flex-1 rounded-xl" onClick={() => setIsEditing(false)}>Cancelar</Button>
-            <Button 
-              className="flex-1 rounded-xl bg-primary font-bold" 
-              onClick={handleUpdate}
-              disabled={isUpdating || !editText.trim() || editText === post.text}
-            >
-              {isUpdating ? "A guardar..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Alerta de Eliminação */}
       <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
         <AlertDialogContent className="max-w-[340px] rounded-3xl z-[200]">
           <AlertDialogHeader>
