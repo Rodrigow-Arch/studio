@@ -13,10 +13,13 @@ import CreatePost from '@/components/feed/CreatePost';
 import { Header } from '@/components/layout/Header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { WifiOff, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const [isOnline, setIsOnline] = React.useState(true);
   
   const userDocRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -28,9 +31,28 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [viewingUserId, setViewingUserId] = React.useState<string | null>(null);
 
-  // Monitorização de presença Online (Heartbeat)
+  // Monitorização de Estado Online / Offline
   React.useEffect(() => {
-    if (!user) return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      setIsOnline(navigator.onLine);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+    };
+  }, []);
+
+  // Heartbeat de Presença
+  React.useEffect(() => {
+    if (!user || !userProfile || !isOnline) return;
 
     const updatePresence = async () => {
       try {
@@ -38,30 +60,54 @@ export default function Home() {
           lastActive: new Date().toISOString()
         });
       } catch (e) {
-        console.error("Erro ao atualizar presença:", e);
+        // Heartbeat falhou silenciosamente
       }
     };
 
-    updatePresence(); // Atualizar ao carregar
-    const interval = setInterval(updatePresence, 60000); // A cada 1 minuto
-
+    updatePresence();
+    const interval = setInterval(updatePresence, 60000);
     return () => clearInterval(interval);
-  }, [user, db]);
+  }, [user, userProfile, db, isOnline]);
+
+  if (!isOnline) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-background p-10 text-center space-y-6">
+        <div className="w-32 h-32 rounded-full bg-destructive/10 flex items-center justify-center animate-pulse">
+          <WifiOff className="w-16 h-16 text-destructive" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="font-headline text-3xl text-primary">Estás Offline</h1>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            O Portugal Unido precisa de internet para te ligar à tua comunidade. Verifica o teu Wi-Fi ou Dados Móveis.
+          </p>
+        </div>
+        <Button 
+          onClick={() => typeof window !== 'undefined' && window.location.reload()} 
+          className="rounded-2xl h-12 px-8 font-black gap-2"
+        >
+          <RefreshCw className="w-4 h-4" /> Tentar Religar
+        </Button>
+      </div>
+    );
+  }
 
   if (isUserLoading || isProfileLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden flex flex-col shadow-xl border border-black/5">
-            <div className="flex-[2] bg-[#055a36] flex items-center justify-center">
-              <span className="text-2xl">🤝</span>
+          <div className="w-20 h-20 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl border-4 border-accent animate-flag">
+            <div className="flex-[2] bg-[#005C2E] flex items-center justify-center">
+              <span className="text-3xl">🤝</span>
             </div>
-            <div className="h-[2px] bg-[#fcd116]" />
-            <div className="flex-1 bg-[#ce1126] flex items-center justify-center">
-              <span className="text-white font-headline text-[10px] font-black tracking-tight">PU</span>
+            <div className="h-[3px] bg-[#FFD700]" />
+            <div className="flex-1 bg-[#C8102E] flex items-center justify-center">
+              <span className="text-white font-headline text-[10px] font-black tracking-widest">PU</span>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground font-medium">A carregar o teu mundo...</p>
+          <div className="text-center space-y-1">
+            <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">Portugal Unido</p>
+            <p className="text-[10px] text-muted-foreground font-medium">A carregar o teu mundo...</p>
+          </div>
         </div>
       </div>
     );
@@ -75,12 +121,15 @@ export default function Home() {
     setViewingUserId(uid);
   };
 
-  const handleNotificationAction = (type: string, data?: any) => {
+  const handleNotificationAction = (type: string) => {
     if (type === 'chat') {
       setActiveTab('messages');
       setShowNotifications(false);
     } else if (type === 'feed') {
       setActiveTab('feed');
+      setShowNotifications(false);
+    } else if (type === 'profile') {
+      setActiveTab('profile');
       setShowNotifications(false);
     }
   };
@@ -106,13 +155,15 @@ export default function Home() {
       case 'add':
       case 'feed':
       default:
-        return <Feed key="feed-tab-feed" onProfileClick={handleProfileClick} />;
+        return <Feed onProfileClick={handleProfileClick} />;
     }
   };
 
   return (
     <div className="app-container flex flex-col h-screen overflow-hidden">
-      {!showNotifications && <Header onNotificationClick={() => setShowNotifications(true)} />}
+      {!showNotifications && (
+        <Header onNotificationClick={() => setShowNotifications(true)} />
+      )}
       
       <div className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
         {renderContent()}
@@ -128,10 +179,9 @@ export default function Home() {
         setViewingUserId(null);
       }} />
 
-      {/* Overlay de Perfil: Ajustado para permitir scroll interno */}
       {viewingUserId && (
-        <div className="fixed inset-0 z-[100] bg-background md:bg-black/40 flex justify-center items-center">
-          <div className="w-full h-full md:max-w-2xl lg:max-w-3xl md:h-[90vh] md:rounded-3xl overflow-y-auto scrollbar-hide shadow-2xl relative bg-white">
+        <div className="fixed inset-0 z-[100] bg-background md:bg-black/60 flex justify-center items-center animate-in fade-in duration-300">
+          <div className="w-full h-full md:max-w-2xl lg:max-w-3xl md:h-[92vh] md:rounded-[3rem] overflow-hidden shadow-2xl relative bg-white">
             <ProfilePage 
               userId={viewingUserId} 
               onBack={() => setViewingUserId(null)} 

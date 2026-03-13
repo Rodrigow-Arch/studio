@@ -27,7 +27,7 @@ import { DISTRITOS_PORTUGAL } from '@/lib/geo';
 import { generateBioDescription } from '@/ai/flows/bio-description-generation-flow';
 import { checkAndAwardBadges } from '@/lib/badge-logic';
 import { getTrustLevel } from '@/lib/trust-levels';
-import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import ImageCropper from '@/components/profile/ImageCropper';
 import LegalModal from '@/components/legal/LegalModals';
@@ -42,7 +42,7 @@ interface SocialLink {
 
 interface ProfilePageProps {
   userId?: string;
-  onBack?: void;
+  onBack?: () => void;
   onProfileClick?: (uid: string) => void;
 }
 
@@ -107,14 +107,13 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     );
   }, [db, targetUid]);
 
-  const { data: rawProfileComments, isLoading: commentsLoading } = useCollection(profileCommentsQuery);
+  const { data: rawProfileComments } = useCollection(profileCommentsQuery);
 
   const profileComments = React.useMemo(() => {
     if (!rawProfileComments) return [];
     return showAllMural ? rawProfileComments : rawProfileComments.slice(0, 3);
   }, [rawProfileComments, showAllMural]);
 
-  // Query para buscar posts do utilizador (removido orderBy para evitar erro de index)
   const userPostsQuery = useMemoFirebase(() => {
     if (!targetUid) return null;
     return query(
@@ -127,7 +126,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
   const activeUserPosts = React.useMemo(() => {
     if (!allUserPosts) return [];
-    // Apenas mostrar posts públicos e que não estão resolvidos, e ordenar por data decrescente manualmente
     return allUserPosts
       .filter(p => p.status !== 'resolvido' && (!p.groupId || p.isPublic))
       .sort((a, b) => {
@@ -871,7 +869,7 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
 function MuralCommentItem({ comment, onProfileClick }: { comment: any, onProfileClick?: (uid: string) => void }) {
   const db = useFirestore();
-  const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
+  const authorRef = useMemoFirebase(() => comment.authorId ? doc(db, 'users', comment.authorId) : null, [db, comment.authorId]);
   const { data: authorProfile } = useDoc(authorRef);
   const trustLevel = authorProfile ? getTrustLevel(authorProfile.points || 0) : null;
 
@@ -902,7 +900,7 @@ function MuralCommentItem({ comment, onProfileClick }: { comment: any, onProfile
             )}
           </div>
           <span className="text-[8px] text-muted-foreground shrink-0">
-            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
+            {comment.timestamp ? formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt }) : ''}
           </span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">{comment.text}</p>

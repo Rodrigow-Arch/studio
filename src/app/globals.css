@@ -4,31 +4,29 @@
 
 @layer base {
   :root {
-    --background: 132 20% 97%;
+    --background: 0 0% 100%;
     --foreground: 153 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 153 60% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 153 60% 5%;
-    --primary: 142 59% 25%;
-    --primary-foreground: 132 20% 98%;
-    --secondary: 132 30% 90%;
-    --secondary-foreground: 142 59% 20%;
-    --muted: 132 10% 85%;
-    --muted-foreground: 142 20% 35%;
-    --accent: 142 59% 20%;
-    --accent-foreground: 132 20% 98%;
-    --destructive: 354 85% 43%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 142 20% 88%;
-    --input: 142 20% 88%;
-    --ring: 142 59% 25%;
-    --radius: 1rem;
-    --chart-1: 142 59% 25%;
-    --chart-2: 354 85% 43%;
-    --chart-3: 45 100% 50%;
-    --chart-4: 120 60% 50%;
-    --chart-5: 142 30% 60%;
+    /* Verde Portugal #005C2E */
+    --primary: 150 100% 18%; 
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 20% 96%;
+    --secondary-foreground: 150 100% 10%;
+    --muted: 150 10% 90%;
+    --muted-foreground: 150 10% 40%;
+    /* Dourado Portugal #FFD700 */
+    --accent: 51 100% 50%;
+    --accent-foreground: 150 100% 10%;
+    /* Vermelho Portugal #C8102E */
+    --destructive: 350 85% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 10% 90%;
+    --input: 150 10% 90%;
+    --ring: 150 100% 18%;
+    --radius: 1.25rem;
   }
 }
 
@@ -40,38 +38,16 @@
     @apply bg-slate-50 text-foreground font-body antialiased;
     min-height: 100vh;
   }
-
-  /* Esconder o olho nativo dos browsers para não duplicar com o nosso */
-  input::-ms-reveal,
-  input::-ms-clear {
-    display: none;
-  }
 }
 
 .font-headline {
   font-family: 'Playfair Display', serif;
 }
 
-/* Contentor principal da App para PC e Mobile */
 .app-container {
-  @apply w-full max-w-full md:max-w-2xl lg:max-w-3xl mx-auto bg-white min-h-screen shadow-2xl shadow-black/5 relative border-x border-black/5;
+  @apply w-full max-w-full md:max-w-2xl lg:max-w-3xl mx-auto bg-white min-h-screen shadow-2xl relative border-x border-black/5;
 }
 
-/* Efeitos Globais de Interação */
-button, .interactive-card {
-  @apply transition-all duration-200 active:scale-95 cursor-pointer;
-}
-
-/* Forçar escurecimento em vez de clareamento */
-button:hover {
-  @apply filter brightness-90;
-}
-
-button:active {
-  @apply filter brightness-75 scale-95;
-}
-
-/* Scrollbar invisível mas funcional */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -83,4 +59,14 @@ button:active {
 input:focus, select:focus, textarea:focus {
   outline: none;
   @apply ring-2 ring-primary/20 border-primary;
+}
+
+/* Animação Bandeira */
+@keyframes wave {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+.animate-flag {
+  animation: wave 3s ease-in-out infinite;
 }

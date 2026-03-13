@@ -36,8 +36,8 @@ export default function RatingStats({ profile, onProfileClick }: RatingStatsProp
     if (!rawRatings) return [];
     const sorted = [...rawRatings]
       .sort((a, b) => {
-        const dateA = new Date(a.timestamp).getTime();
-        const dateB = new Date(b.timestamp).getTime();
+        const dateA = new Date(a.timestamp || 0).getTime();
+        const dateB = new Date(b.timestamp || 0).getTime();
         return dateB - dateA;
       });
     
@@ -144,7 +144,6 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
   const { data: raterProfile } = useDoc(raterProfileRef);
   const trustLevel = raterProfile ? getTrustLevel(raterProfile.points || 0) : null;
 
-  // Garantir que o username tem o formato correto (evitar @ duplicado)
   const displayUsername = rc.raterUsername?.startsWith('@') ? rc.raterUsername : `@${rc.raterUsername}`;
 
   return (
@@ -184,7 +183,7 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
         </div>
         <p className="text-xs italic text-muted-foreground leading-snug">"{rc.comment || 'Ajudou imenso, recomendo!'}"</p>
         <p className="text-[8px] text-right mt-1 text-muted-foreground/60 uppercase font-black">
-          {formatDistanceToNow(new Date(rc.timestamp), { addSuffix: true, locale: pt })}
+          {rc.timestamp ? formatDistanceToNow(new Date(rc.timestamp), { addSuffix: true, locale: pt }) : ''}
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 /**
- * @fileOverview Lógica de níveis de confiança baseados em pontos.
+ * @fileOverview Lógica de níveis de confiança baseados em pontos (Bronze -> Lenda).
  */
 
 export interface TrustLevel {
@@ -11,11 +11,11 @@ export interface TrustLevel {
 }
 
 export const TRUST_LEVELS: TrustLevel[] = [
-  { minPoints: 5000, label: "Lenda de Portugal", icon: "👑", color: "text-purple-600", bg: "bg-purple-50" },
-  { minPoints: 2500, label: "Herói Local", icon: "💎", color: "text-blue-600", bg: "bg-blue-50" },
-  { minPoints: 1000, label: "Pilar da Comunidade", icon: "🥇", color: "text-yellow-600", bg: "bg-yellow-50" },
-  { minPoints: 500, label: "Vizinho Ativo", icon: "🥈", color: "text-slate-600", bg: "bg-slate-50" },
-  { minPoints: 100, label: "Membro de Confiança", icon: "🥉", color: "text-orange-600", bg: "bg-orange-50" },
+  { minPoints: 5000, label: "Lenda de Portugal", icon: "👑", color: "text-purple-700", bg: "bg-purple-100" },
+  { minPoints: 2500, label: "Selo Diamante", icon: "💎", color: "text-blue-700", bg: "bg-blue-100" },
+  { minPoints: 1000, label: "Selo Ouro", icon: "🥇", color: "text-yellow-700", bg: "bg-yellow-100" },
+  { minPoints: 500, label: "Selo Prata", icon: "🥈", color: "text-slate-700", bg: "bg-slate-100" },
+  { minPoints: 100, label: "Selo Bronze", icon: "🥉", color: "text-orange-700", bg: "bg-orange-100" },
 ];
 
 export function getTrustLevel(points: number): TrustLevel | null {
