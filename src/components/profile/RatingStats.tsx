@@ -1,7 +1,8 @@
+
 "use client";
 
 import * as React from 'react';
-import { Star, Quote, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, Quote, ChevronDown, ChevronUp, BadgeCheck } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -157,12 +158,17 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
       </Avatar>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <span 
-            className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
-            onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
-          >
-            {displayUsername}
-          </span>
+          <div className="flex items-center gap-1">
+            <span 
+              className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
+              onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
+            >
+              {displayUsername}
+            </span>
+            {rc.raterUsername === '@faroltech' && (
+              <BadgeCheck className="w-3 h-3 text-[#0095f6]" />
+            )}
+          </div>
           <div className="flex text-yellow-400">
             {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-2 h-2 ${i <= rc.stars ? 'fill-current' : ''}`} />)}
           </div>

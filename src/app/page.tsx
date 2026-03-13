@@ -102,7 +102,7 @@ export default function Home() {
       case 'messages':
         return <ChatList onProfileClick={handleProfileClick} />;
       case 'profile':
-        return <ProfilePage userId={user.uid} />;
+        return <ProfilePage userId={user.uid} onProfileClick={handleProfileClick} />;
       case 'add':
       case 'feed':
       default:
@@ -135,6 +135,7 @@ export default function Home() {
             <ProfilePage 
               userId={viewingUserId} 
               onBack={() => setViewingUserId(null)} 
+              onProfileClick={handleProfileClick}
             />
           </div>
         </div>
