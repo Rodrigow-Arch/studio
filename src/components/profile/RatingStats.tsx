@@ -141,6 +141,9 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
   const raterProfileRef = useMemoFirebase(() => rc.raterId ? doc(db, 'users', rc.raterId) : null, [db, rc.raterId]);
   const { data: raterProfile } = useDoc(raterProfileRef);
 
+  // Garantir que o username tem o formato correto (evitar @ duplicado)
+  const displayUsername = rc.raterUsername?.startsWith('@') ? rc.raterUsername : `@${rc.raterUsername}`;
+
   return (
     <div className="bg-secondary/10 p-3 rounded-2xl border border-transparent hover:border-primary/10 transition-all flex gap-3">
       <Avatar 
@@ -149,7 +152,7 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
       >
         {raterProfile?.photoUrl && <AvatarImage src={raterProfile.photoUrl} className="object-cover" />}
         <AvatarFallback className="text-[10px] font-bold bg-primary text-white" style={{ backgroundColor: raterProfile?.avatarColor }}>
-          {rc.raterUsername?.charAt(0).toUpperCase()}
+          {rc.raterUsername?.charAt(rc.raterUsername.startsWith('@') ? 1 : 0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1">
@@ -158,7 +161,7 @@ function TestimonialItem({ rc, onProfileClick }: { rc: any, onProfileClick?: (ui
             className="text-[10px] font-bold text-primary cursor-pointer hover:underline"
             onClick={() => rc.raterId && onProfileClick?.(rc.raterId)}
           >
-            @{rc.raterUsername}
+            {displayUsername}
           </span>
           <div className="flex text-yellow-400">
             {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-2 h-2 ${i <= rc.stars ? 'fill-current' : ''}`} />)}
