@@ -354,12 +354,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     ? format(new Date(userProfile.joinedTimestamp), "'Membro desde' MMMM 'de' yyyy", { locale: pt })
     : '';
 
-  const handleMuralAuthorClick = (uid: string) => {
-    if (onProfileClick) {
-      onProfileClick(uid);
-    }
-  };
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-full bg-background">
       <div className="h-40 relative overflow-hidden bg-primary shrink-0">
@@ -517,30 +511,11 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
             {profileComments && profileComments.length > 0 ? (
               <div className="space-y-3">
                 {profileComments.map((pc: any) => (
-                  <div key={pc.id} className="flex gap-3">
-                    <Avatar 
-                      className="w-8 h-8 shrink-0 border cursor-pointer hover:scale-110 transition-transform shadow-sm"
-                      onClick={() => handleMuralAuthorClick(pc.authorId)}
-                    >
-                      <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: pc.authorAvatarColor }}>
-                        {pc.authorAvatarLetter}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-black text-primary cursor-pointer hover:underline" onClick={() => handleMuralAuthorClick(pc.authorId)}>
-                            {pc.authorUsername}
-                          </span>
-                          {pc.authorUsername === '@faroltech' && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
-                        </div>
-                        <span className="text-[8px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(pc.timestamp), { addSuffix: true, locale: pt })}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{pc.text}</p>
-                    </div>
-                  </div>
+                  <MuralCommentItem 
+                    key={pc.id} 
+                    comment={pc} 
+                    onProfileClick={onProfileClick} 
+                  />
                 ))}
               </div>
             ) : (
@@ -848,6 +823,48 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
         onCropComplete={handleCropComplete} 
         onCancel={() => setImageToCrop(null)} 
       />
+    </div>
+  );
+}
+
+function MuralCommentItem({ comment, onProfileClick }: { comment: any, onProfileClick?: (uid: string) => void }) {
+  const db = useFirestore();
+  const authorRef = useMemoFirebase(() => doc(db, 'users', comment.authorId), [db, comment.authorId]);
+  const { data: authorProfile } = useDoc(authorRef);
+  const trustLevel = authorProfile ? getTrustLevel(authorProfile.points || 0) : null;
+
+  return (
+    <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+      <Avatar 
+        className="w-8 h-8 shrink-0 border cursor-pointer hover:scale-110 transition-transform shadow-sm"
+        onClick={() => onProfileClick?.(comment.authorId)}
+      >
+        {authorProfile?.photoUrl && <AvatarImage src={authorProfile.photoUrl} className="object-cover" />}
+        <AvatarFallback className="text-[10px] font-bold text-white" style={{ backgroundColor: comment.authorAvatarColor }}>
+          {comment.authorAvatarLetter}
+        </AvatarFallback>
+      </Avatar>
+      <div className="bg-white p-3 rounded-2xl flex-1 shadow-sm border border-secondary/50">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-black text-primary cursor-pointer hover:underline" onClick={() => onProfileClick?.(comment.authorId)}>
+                {comment.authorUsername}
+              </span>
+              {comment.authorUsername === '@faroltech' && <BadgeCheck className="w-3 h-3 text-[#0095f6]" />}
+            </div>
+            {trustLevel && (
+              <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${trustLevel.bg} border border-current/10 ${trustLevel.color} text-[7px] font-black uppercase`}>
+                {trustLevel.icon} {trustLevel.label}
+              </div>
+            )}
+          </div>
+          <span className="text-[8px] text-muted-foreground shrink-0">
+            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: pt })}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{comment.text}</p>
+      </div>
     </div>
   );
 }
