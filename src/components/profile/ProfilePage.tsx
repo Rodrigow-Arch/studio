@@ -42,7 +42,7 @@ interface SocialLink {
 
 interface ProfilePageProps {
   userId?: string;
-  onBack?: () => void;
+  onBack?: void;
   onProfileClick?: (uid: string) => void;
 }
 
@@ -114,13 +114,12 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     return showAllMural ? rawProfileComments : rawProfileComments.slice(0, 3);
   }, [rawProfileComments, showAllMural]);
 
-  // Query para buscar posts do utilizador
+  // Query para buscar posts do utilizador (removido orderBy para evitar erro de index)
   const userPostsQuery = useMemoFirebase(() => {
     if (!targetUid) return null;
     return query(
       collection(db, 'posts'),
-      where('authorId', '==', targetUid),
-      orderBy('timestamp', 'desc')
+      where('authorId', '==', targetUid)
     );
   }, [db, targetUid]);
 
@@ -128,8 +127,14 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
 
   const activeUserPosts = React.useMemo(() => {
     if (!allUserPosts) return [];
-    // Apenas mostrar posts públicos e que não estão resolvidos
-    return allUserPosts.filter(p => p.status !== 'resolvido' && (!p.groupId || p.isPublic));
+    // Apenas mostrar posts públicos e que não estão resolvidos, e ordenar por data decrescente manualmente
+    return allUserPosts
+      .filter(p => p.status !== 'resolvido' && (!p.groupId || p.isPublic))
+      .sort((a, b) => {
+        const dateA = new Date(a.timestamp || 0).getTime();
+        const dateB = new Date(b.timestamp || 0).getTime();
+        return dateB - dateA;
+      });
   }, [allUserPosts]);
 
   React.useEffect(() => {
@@ -490,7 +495,6 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
           </div>
         </div>
 
-        {/* NOVA SECÇÃO: Publicações Ativas */}
         <div className="space-y-4">
           <h3 className="font-headline text-lg flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-primary" /> Publicações Ativas
