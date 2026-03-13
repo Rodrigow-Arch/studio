@@ -14,10 +14,11 @@ import {
   Sparkles, User as UserIcon, CalendarDays,
   Send, MessageSquareQuote, ChevronDown, ChevronUp,
   Settings, Trash, AlertTriangle, FileText, Instagram, Youtube, Facebook, Twitter, Globe, Link as LinkIcon, Plus, Trash2, ShieldCheck, X,
-  BadgeCheck
+  BadgeCheck, LayoutGrid
 } from "lucide-react";
 import RatingStats from './RatingStats';
 import BadgeGrid from './BadgeGrid';
+import PostCard from '../feed/PostCard';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth, useCollection } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, limit, writeBatch } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -113,6 +114,24 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
     return showAllMural ? rawProfileComments : rawProfileComments.slice(0, 3);
   }, [rawProfileComments, showAllMural]);
 
+  // Query para buscar posts do utilizador
+  const userPostsQuery = useMemoFirebase(() => {
+    if (!targetUid) return null;
+    return query(
+      collection(db, 'posts'),
+      where('authorId', '==', targetUid),
+      orderBy('timestamp', 'desc')
+    );
+  }, [db, targetUid]);
+
+  const { data: allUserPosts, isLoading: postsLoading } = useCollection(userPostsQuery);
+
+  const activeUserPosts = React.useMemo(() => {
+    if (!allUserPosts) return [];
+    // Apenas mostrar posts públicos e que não estão resolvidos
+    return allUserPosts.filter(p => p.status !== 'resolvido' && (!p.groupId || p.isPublic));
+  }, [allUserPosts]);
+
   React.useEffect(() => {
     if (userProfile) {
       setEditData({
@@ -129,13 +148,10 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
   }, [userProfile]);
 
   React.useEffect(() => {
-    if (targetUid) {
-      const q = query(collection(db, "posts"), where("authorId", "==", targetUid));
-      getDocs(q).then(snapshot => {
-        setPostCount(snapshot.size);
-      });
+    if (allUserPosts) {
+      setPostCount(allUserPosts.length);
     }
-  }, [db, targetUid]);
+  }, [allUserPosts]);
 
   if (isLoading || !userProfile) {
     return (
@@ -472,6 +488,28 @@ export default function ProfilePage({ userId, onBack, onProfileClick }: ProfileP
           <div className="text-sm text-muted-foreground bg-white p-5 rounded-3xl italic shadow-sm border border-secondary">
             {userProfile.description || (isOwnProfile ? "Conta algo sobre ti à comunidade..." : "Este utilizador ainda não adicionou uma descrição.")}
           </div>
+        </div>
+
+        {/* NOVA SECÇÃO: Publicações Ativas */}
+        <div className="space-y-4">
+          <h3 className="font-headline text-lg flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5 text-primary" /> Publicações Ativas
+          </h3>
+          {postsLoading ? (
+            <div className="space-y-3">
+              <div className="h-32 bg-secondary/20 animate-pulse rounded-3xl" />
+            </div>
+          ) : activeUserPosts.length > 0 ? (
+            <div className="space-y-4">
+              {activeUserPosts.map(post => (
+                <PostCard key={post.id} post={post} onProfileClick={onProfileClick || (() => {})} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center bg-secondary/5 rounded-3xl border border-dashed text-muted-foreground text-[10px] font-bold uppercase tracking-widest">
+              Nenhuma publicação ativa no momento
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
